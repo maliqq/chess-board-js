@@ -68,8 +68,8 @@ function Move2(a) {
 }
 function parseMove(data) {
   if (data.length == 1) {
-    if (/\d/.test(data)) return {x: parseInt(data)};
-    return {y: data};
+    if (/\d/.test(data)) return {x: RANKS.indexOf(data)};
+    return {y: FILES.indexOf(data)};
   }
   return {
     x: RANKS.indexOf(data[1]),
@@ -85,12 +85,14 @@ function SAN(data) {
 
   if (data == 'O-O' || data == '0-0') {
     return {
-      kingSideCastle: true
+      castle: true,
+      kingSide: true
     };
   }
   if (data == 'O-O-O' || data == '0-0-0') {
     return {
-      queenSideCastle: true
+      castle: true,
+      queenSide: true
     };
   }
 
@@ -227,12 +229,10 @@ function BoardView(el) {
 
       if (el.hasClass('selected')) {
         el.toggleClass('selected');
-        console.log('ondeselect');
         ondeselect(x, y);
       } else {
         $('.selected').removeClass('selected');
         el.addClass('selected');
-        console.log('onselect');
         onselect(x, y);
       }
     })
@@ -299,11 +299,11 @@ function Suggests(b) {
     function __direction(_x, _y) {
       if (isDiagonal) {
         var d = [Math.sign(_x - x), Math.sign(_y - y)];
-        switch (d) {
-          case [1, 1]: return 0;
-          case [1, -1]: return 1;
-          case [-1, -1]: return 2;
-          case [-1, 1]: return 3;
+        switch (JSON.stringify(d)) {
+          case '[1,1]': return 0;
+          case '[1,-1]': return 1;
+          case '[-1,-1]': return 2;
+          case '[-1,1]': return 3;
         }
       }
       if (_x == x) {
@@ -323,13 +323,11 @@ function Suggests(b) {
     for (var i = 0; i < moves.length; i++) {
       var move = moves[i];
       var _x = move[0], _y = move[1];
-      //console.log(Move(_x, _y))
       var moveType = this.b.canMove(_x, _y, isBlack);
       if (moveType == MoveType.CHECK_ON_KING || moveType == MoveType.CAPTURE || moveType == MoveType.OURS) {
         var min = directions[__direction(_x, _y)];
         var distance = __distance(_x, _y);
         if (distance < min || min == BOARD_SIZE) {
-          console.log(Move(_x, _y), 'd=', __direction(_x, _y));
           directions[__direction(_x, _y)] = distance;
         }
       }
@@ -556,54 +554,13 @@ function Board() {
   this.pgn = [];
   this.parsePGN = function(data) {
     this.pgn = PGN(data);
-    console.log(this.pgn);
   }
 
   this.forward = function() {
     var san = this.pgn.shift();
     if (san) {
-      d = "";
-      if (san.piece) {
-        d += Piece(san.piece).name + " ";
-      }
-      if (san.moveFrom) {
-        d += Move(san.moveFrom.x, san.moveFrom.y);
-      }
-      if (san.moveTo) {
-        d += Move(san.moveTo.x, san.moveTo.y);
-      }
-      console.log(d);
       this.applySAN(san);
     }
-  }
-
-  this._cacheBlack = null;
-  this._cacheWhite = null;
-  this.clearCachedPositions = function() {
-    this._cacheBlack = null;
-    this._cacheWhite = null;
-  }
-  this.cachedPositions = function(isBlack) {
-    var cached = isBlack ? this._cacheBlack : this._cacheWhite;
-    if (cached !== null) {
-      return cached;
-    }
-    var cached = {};
-    for (var i = 0; i < BOARD_SIZE; i++) {
-      for (var j = 0; j < BOARD_SIZE; j++) {
-        if (this.isEmpty(i, j)) continue;
-        var p = Piece(this.get(i, j));
-        if (p.isBlack !== isBlack) continue;
-        cached[p.piece] = cached[p.piece] || [];
-        cached[p.piece].push([i, j]);
-      }
-    }
-    if (isBlack) {
-      this._cacheBlack = cached;
-    } else {
-      this._cacheWhite = cached;
-    }
-    return cached;
   }
 
   this.pawnPosition = function(column, row, isBlack) {
@@ -623,29 +580,56 @@ function Board() {
     }
   }
 
-  this.piecePosition = function(piece, isBlack, options) {
-    var piecePositions = this.cachedPositions(isBlack)[piece];
+  this.piecePositions = function(isBlack) {
+    var positions = {};
+    for (var i = 0; i < BOARD_SIZE; i++) {
+      for (var j = 0; j < BOARD_SIZE; j++) {
+        if (this.isEmpty(i, j)) continue;
+        var p = Piece(this.get(i, j));
+        if (p.isBlack !== isBlack) continue;
+        positions[p.piece] = positions[p.piece] || [];
+        positions[p.piece].push([i, j]);
+      }
+    }
+    return positions;
+  }
+
+  this.piecePosition = function(piece, isBlack, options, moveTo) {
+    var positions = this.piecePositions(isBlack)[piece];
+    if (positions.length == 1) {
+      return positions[0];
+    }
+    for (var i = 0; i < positions.length; i++) {
+      var pos = positions[i];
+      if (options.x && pos[0] == options.x) return pos;
+      if (options.y && pos[1] == options.y) return pos;
+      var suggests = this.suggests.on(pos[0], pos[1]);
+      for (var j = 0; j < suggests.length; j++) {
+        if (suggests[j][0] == moveTo.x && suggests[j][1] == moveTo.y) {
+          return pos;
+        }
+      }
+    }
+    console.error("which piece to move?", piece, isBlack, options, moveTo);
   }
 
   this.applySAN = function(san) {
-    console.log('is black moving?', this.isBlack);
-
     if (san.draw || san.wonByBlack || san.wonByWhite) return;
-    if (san.kingSideCastle || san.queenSideCastle) {
+    if (san.castle) {
       var rank = '1';
       if (this.isBlack) {
         rank = '8';
       }
       var king = parseMove('e'+rank);
-      if (board.get(king.x, king.y) != KING) {
-        throw("can't castle: king is not in correct place");
+      if (Piece(board.get(king.x, king.y)).piece != KING) {
+        console.error("can't castle: king is not in correct place", king)
       }
-      if (san.kingSideCastle) {
+      if (san.kingSide) {
         var kingTo = parseMove('g'+rank);
         this.move(king.x, king.y, kingTo.x, kingTo.y);
         var rook = parseMove('h'+rank);
         this.move(rook.x, rook.y, king.x, king.y);
-      } else if (san.queenSideCastle) {
+      } else if (san.queenSide) {
         var kingTo = parseMove('c'+rank);
         this.move(king.x, king.y, kingTo.x, kingTo.y);
         var rook = parseMove('a'+rank);
@@ -656,16 +640,14 @@ function Board() {
       // pawn movements
       var pos = this.pawnPosition(san.isCapture ? san.moveFrom.y : san.moveTo.y, san.moveTo.x, this.isBlack);
       if (!pos) {
-        throw("can't move pawn");
+        console.error("can't move pawn");
       }
       this.move(pos[0], pos[1], san.moveTo.x, san.moveTo.y);
-      return
     } else {
-      var pos = this.piecePosition(san.piece, this.isBlack, san.moveFrom);
-      this.move(pos.x, pos.y, san.moveTo.x, san.moveTo.y);
+      var pos = this.piecePosition(san.piece, this.isBlack, san.moveFrom, san.moveTo);
+      this.move(pos[0], pos[1], san.moveTo.x, san.moveTo.y);
     }
 
-    this.clearCachedPositions();
     this.isBlack = !this.isBlack;
   }
 
