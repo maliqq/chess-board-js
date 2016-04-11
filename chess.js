@@ -62,9 +62,18 @@ function Piece(code) {
       case KING:
         name = "king"; break;
     }
+    eval(
+    'var SYMBOLS ='+
+      '{false: {'+KING+': "♔", '+QUEEN+': "♕", '+ROOK+': "♖", '+BISHOP+': "♗", '+KNIGHT+': "♘", '+PAWN+': "♙"},'+
+        'true: {'+KING+': "♚", '+QUEEN+': "♛", '+ROOK+': "♜", '+BISHOP+': "♝", '+KNIGHT+': "♞", '+PAWN+': "♟"}};'
+    )
+
     piece = {
       isBlack: isBlack,
       piece: piece,
+      symbol: SYMBOLS[isBlack][piece],
+      symbolWhite: SYMBOLS[false][piece],
+      symbolBlack: SYMBOLS[true][piece],
       name: name
     }
   }
@@ -221,14 +230,7 @@ function BoardView(el) {
       return;
     }
 
-    eval(
-    'var SYMBOLS ='+
-      '{false: {'+KING+': "♔", '+QUEEN+': "♕", '+ROOK+': "♖", '+BISHOP+': "♗", '+KNIGHT+': "♘", '+PAWN+': "♙"},'+
-        'true: {'+KING+': "♚", '+QUEEN+': "♛", '+ROOK+': "♜", '+BISHOP+': "♝", '+KNIGHT+': "♞", '+PAWN+': "♟"}};'
-    )
-
-    var symbol = SYMBOLS[p.isBlack][p.piece];
-    b.html($('<span>').attr('class', 'piece ' + p.name + (p.isBlack ? ' black' : ' white')).text(symbol));
+    b.html($('<span>').attr('class', 'piece ' + p.name + (p.isBlack ? ' black' : ' white')).text(p.symbol));
   }
 
   this.drawPiece = function(x, y, piece) {
