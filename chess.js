@@ -18,34 +18,59 @@ MoveType = {
 
 var BOARD_SIZE = 8;
 
-function Piece(code) {
-  var isEmpty = code == EMPTY;
-  if (isEmpty) return {isEmpty: true};
-  var isBlack = !isEmpty && (code >> B != 0);
-  var piece = isBlack ? (code >> B) : code;
-  var name;
-  switch (piece) {
-    case EMPTY:
-      name = "empty"; break;
-    case PAWN:
-      name = "pawn"; break;
-    case BISHOP:
-      name = "bishop"; break;
-    case KNIGHT:
-      name = "knight"; break;
-    case ROOK:
-      name = "rook"; break;
-    case QUEEN:
-      name = "queen"; break;
-    case KING:
-      name = "king"; break;
-  }
-  return {
-    isBlack: isBlack,
-    piece: piece,
-    name: name
+var Pieces = {
+  byCode: {},
+  black: {
+    Queen:  QUEEN << B,
+    King:   KING << B,
+    Rook:   ROOK << B,
+    Bishop: BISHOP << B,
+    Knight: KNIGHT << B,
+    Pawn:   PAWN << B
+  },
+  white: {
+    Queen:  QUEEN,
+    King:   KING,
+    Rook:   ROOK,
+    Bishop: BISHOP,
+    Knight: KNIGHT,
+    Pawn:   PAWN
   }
 }
+
+function Piece(code) {
+  var piece = Pieces.byCode[code];
+  if (!piece) {
+    var isEmpty = code == EMPTY;
+    if (isEmpty) return {isEmpty: true};
+    var isBlack = !isEmpty && (code >> B != 0);
+    var piece = isBlack ? (code >> B) : code;
+    var name;
+    switch (piece) {
+      case EMPTY:
+        name = "empty"; break;
+      case PAWN:
+        name = "pawn"; break;
+      case BISHOP:
+        name = "bishop"; break;
+      case KNIGHT:
+        name = "knight"; break;
+      case ROOK:
+        name = "rook"; break;
+      case QUEEN:
+        name = "queen"; break;
+      case KING:
+        name = "king"; break;
+    }
+    piece = {
+      isBlack: isBlack,
+      piece: piece,
+      name: name
+    }
+  }
+  return piece;
+}
+
 function parsePiece(piece) {
   switch (piece) {
     case 'R': return ROOK;
@@ -470,15 +495,17 @@ function Suggests(b) {
 }
 
 function Board() {
+  var b = Pieces.black;
+  var w = Pieces.white;
   this.board = [
-    [ROOK << B, KNIGHT << B, BISHOP << B, QUEEN << B, KING << B, BISHOP << B, KNIGHT << B, ROOK << B],
-    [PAWN << B, PAWN << B, PAWN << B, PAWN << B, PAWN << B, PAWN << B, PAWN << B, PAWN << B],
+    [b.Rook, b.Knight, b.Bishop, b.Queen, b.King, b.Bishop, b.Knight, b.Rook],
+    [b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
     [0, 0, 0, 0, 0, 0, 0, 0],
-    [PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN, PAWN],
-    [ROOK, KNIGHT, BISHOP, QUEEN, KING, BISHOP, KNIGHT, ROOK]
+    [w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn],
+    [w.Rook, w.Knight, w.Bishop, w.Queen, w.King, w.Bishop, w.Knight, w.Rook]
   ];
 
   this.log = new Log(this);
@@ -599,10 +626,16 @@ function Board() {
     if (positions.length == 1) {
       return positions[0];
     }
+
     for (var i = 0; i < positions.length; i++) {
       var pos = positions[i];
-      if (options.x && pos[0] == options.x) return pos;
+
       if (options.y && pos[1] == options.y) return pos;
+      if (options.x && pos[0] == options.x) return pos;
+    }
+
+    for (var i = 0; i < positions.length; i++) {
+      var pos = positions[i];
       var suggests = this.suggests.on(pos[0], pos[1]);
       for (var j = 0; j < suggests.length; j++) {
         if (suggests[j][0] == moveTo.x && suggests[j][1] == moveTo.y) {
@@ -610,6 +643,7 @@ function Board() {
         }
       }
     }
+
     console.error("which piece to move?", piece, isBlack, options, moveTo);
   }
 
@@ -628,7 +662,8 @@ function Board() {
         var kingTo = parseMove('g'+rank);
         this.move(king.x, king.y, kingTo.x, kingTo.y);
         var rook = parseMove('h'+rank);
-        this.move(rook.x, rook.y, king.x, king.y);
+        var rookTo = parseMove('f'+rank);
+        this.move(rook.x, rook.y, rookTo.x, rookTo.y);
       } else if (san.queenSide) {
         var kingTo = parseMove('c'+rank);
         this.move(king.x, king.y, kingTo.x, kingTo.y);
