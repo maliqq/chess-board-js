@@ -43,24 +43,22 @@ function Piece(code) {
   if (!piece) {
     var isEmpty = code == EMPTY;
     if (isEmpty) return {isEmpty: true};
-    var isBlack = !isEmpty && (code >> B != 0);
+    var isBlack = code >> B != 0;
     var piece = isBlack ? (code >> B) : code;
-    var name;
+    var name, letter;
     switch (piece) {
-      case EMPTY:
-        name = "empty"; break;
       case PAWN:
-        name = "pawn"; break;
+        name = "pawn"; letter = "p"; break;
       case BISHOP:
-        name = "bishop"; break;
+        name = "bishop"; letter = "b"; break;
       case KNIGHT:
-        name = "knight"; break;
+        name = "knight"; letter = "n"; break;
       case ROOK:
-        name = "rook"; break;
+        name = "rook"; letter = "r"; break;
       case QUEEN:
-        name = "queen"; break;
+        name = "queen"; letter = "q"; break;
       case KING:
-        name = "king"; break;
+        name = "king"; letter = "k"; break;
     }
     eval(
     'var SYMBOLS ='+
@@ -71,9 +69,11 @@ function Piece(code) {
     piece = {
       isBlack: isBlack,
       piece: piece,
+      letter: letter,
       symbol: SYMBOLS[isBlack][piece],
       symbolWhite: SYMBOLS[false][piece],
       symbolBlack: SYMBOLS[true][piece],
+      fenCode: isBlack ? letter : letter.toUpperCase(),
       name: name
     }
   }
@@ -509,6 +509,27 @@ function Board() {
     [w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn],
     [w.Rook, w.Knight, w.Bishop, w.Queen, w.King, w.Bishop, w.Knight, w.Rook]
   ];
+
+  this.boardFEN = function() {
+    var fen = "";
+    for (var i = 0; i < BOARD_SIZE; i++) {
+      var empties = 0;
+      for (var j = 0; j < BOARD_SIZE; j++) {
+        if (this.isEmpty(i, j)) empties++;
+        else {
+          empties = 0;
+          fen += Piece(this.get(i, j)).fenCode;
+        }
+      }
+      if (empties > 0) fen += empties.toString();
+      if (i != 7) fen += "/";
+    }
+    return fen;
+  }
+
+  this.loadFEN = function(fen) {
+
+  }
 
   this.log = new Log(this);
   this.view = new BoardView('#board');
