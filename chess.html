@@ -71,6 +71,19 @@
         background-color: #cc9933;
       }
 
+      .cell.can_move {
+        background-color: blue;
+      }
+      .cell.move_under_attack {
+        background-color: red;
+      }
+      .cell.can_attack {
+        background-color: green;
+      }
+      .cell.attack_under_attack {
+        background-color: yellow;
+      }
+
       @font-face {
         font-family: chessmaster;
         src: url(./chessmaster.ttf);
@@ -134,6 +147,10 @@
       <h4>PGN</h4>
       <textarea id="pgn"></textarea>
       <div><button onclick="v=$('#pgn').val(); localStorage.setItem('pgn', v); board.parsePGN(v);">Apply</button></div>
+      <div>
+        <label><input type="checkbox" onchange="board.showAttackedFields()" /> Show attacked fields</label><br />
+        <label><input type="checkbox" onchange="board.switchTurn()" /> Switch turn</label>
+      </div>
     </div>
   </body>
 </html>

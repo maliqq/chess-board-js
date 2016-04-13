@@ -87,6 +87,7 @@ function parsePiece(piece) {
     case 'B': return BISHOP;
     case 'K': return KING;
     case 'Q': return QUEEN;
+    case 'P': return PAWN;
     default:
       throw("unknown piece: "+ piece.toString());
   }
@@ -109,6 +110,34 @@ function parseMove(data) {
     x: RANKS.indexOf(data[1]),
     y: FILES.indexOf(data[0])
   }
+}
+
+function parseFENPiece(s) {
+  var piece = parsePiece(s.toUpperCase());
+  if (s.toUpperCase() == s) return piece;
+  return piece << B;
+}
+
+function FEN(data) {
+  data = data.split(' ')[0];
+  var _board = [];
+  var rows = data.split('/');
+  for (var i = 0; i < rows.length; i++) {
+    var row = rows[i];
+    var _row = [];
+    var figures = row.split("");
+    for (var j = 0; j < figures.length; j++) {
+      var figure = figures[j];
+      if (/\d/.test(figure)) {
+        var empties = parseInt(figure)
+        for (var count = 0; count < empties; count++) _row.push(0);
+      } else {
+        _row.push(parseFENPiece(figure));
+      }
+    }
+    _board.push(_row);
+  }
+  return _board;
 }
 
 function SAN(data) {
@@ -284,6 +313,20 @@ function BoardView(el) {
     }
   }
 
+  MARKS = ['can_move', 'move_under_attack', 'can_attack', 'attack_under_attack']
+  this.clearMarks = function() {
+    for (var i = 0; i < MARKS.length; i++) {
+      $('.mark').removeClass(MARKS[i]);
+    }
+    $('.mark').removeClass('mark');
+  }
+  this.mark = function(x, y, style) {
+    $('#'+this.getID(x, y)).addClass(style).addClass('mark');
+  }
+  this.unmark = function(x, y, style) {
+    $('#'+this.getID(x, y)).removeClass(style).addClass('mark');
+  }
+
   this.onselect = function() {};
   this.ondeselect = function() {};
 }
@@ -379,13 +422,28 @@ function Suggests(b) {
     return filtered;
   }
 
-  this.on = function(x, y) {
+  KNIGHT_MOVES = [
+    [2, 1], [2, -1],
+    [1, 2], [-1, 2],
+    [-1, -2], [1, -2],
+    [-2, -1], [-2, 1]
+  ]
+
+  this.possibleMoves = function(x, y) {
     var p = Piece(this.b.get(x, y));
     var isBlack = p.isBlack;
 
     var checkPossibleMove = function(x, y) {
       var moveType = this.b.canMove(x, y, isBlack);
       if (moveType == MoveType.POSSIBLE) {
+        return [x, y];
+      }
+      return false;
+    }.bind(this);
+
+    var checkPossibleCapture = function(x, y) {
+      var moveType = this.b.canMove(x, y, isBlack);
+      if (moveType == MoveType.CAPTURE) {
         return [x, y];
       }
       return false;
@@ -446,6 +504,11 @@ function Suggests(b) {
             }
           }
         }
+        // attack moves
+        var move1 = checkPossibleCapture(x+o, y+1, isBlack);
+        var move2 = checkPossibleCapture(x+o, y-1, isBlack);
+        if (move1 !== false) possibleMoves.push(move1);
+        if (move2 !== false) possibleMoves.push(move2);
         break;
 
       case ROOK:
@@ -457,12 +520,7 @@ function Suggests(b) {
         break;
 
       case KNIGHT:
-        var moves = [
-          [2, 1], [2, -1],
-          [1, 2], [-1, 2],
-          [-1, -2], [1, -2],
-          [-2, -1], [-2, 1]
-        ]
+        var moves = KNIGHT_MOVES;
         for (var i = 0; i < moves.length; i++) {
           var _x = x + moves[i][0], _y = y + moves[i][1];
           var move = checkPossibleMoveOrCapture(_x, _y)
@@ -494,21 +552,63 @@ function Suggests(b) {
 
     return possibleMoves;
   }
+
+  this.isAttacked = function(x, y, isBlack) {
+    var signs = [
+      [-1,-1], [-1, 1], [1, -1], [1, 1],
+      [-1, 0], [1, 0], [0, 1], [0, -1]
+    ]
+    var ignored = [];
+    for (var d = 1; d < BOARD_SIZE; d++) {
+      for (var i = 0; i < signs.length; i++) {
+        if (ignored.indexOf(i) != -1) continue;
+
+        var _x = x + signs[i][0] * d;
+        var _y = y + signs[i][1] * d;
+
+        var piece = this.b.getPiece(_x, _y);
+        if (piece == null) continue;
+        if (piece.isBlack == isBlack) {
+          ignored.push(i);
+          continue;
+        }
+        piece = piece.piece;
+
+        if (signs[i][0] == 0 || signs[i][1] == 0) {
+          // direct move
+          if (piece == ROOK || piece == QUEEN) return true;
+        } else {
+          // diagonal move
+          if (piece == BISHOP || piece == QUEEN) return true;
+        }
+        // king attack
+        if (d == 1 && piece == KING) return true;
+      }
+    }
+
+    // pawn attacks
+    var d = isBlack ? 1 : -1;
+    var pawn1 = this.b.getPiece(x + d, y + 1);
+    if (pawn1 == null) {
+      var pawn2 = this.b.getPiece(x + d, y - 1);
+      if (pawn2 != null && pawn2.isBlack != isBlack) return true;
+    } else {
+      if (pawn1.isBlack != isBlack) return true;
+    }
+
+    // knight moves
+    for (var i = 0; i < KNIGHT_MOVES.length; i++) {
+      var _x = x + KNIGHT_MOVES[i][0], _y = y + KNIGHT_MOVES[i][1];
+      var piece = this.b.getPiece(_x, _y);
+      if (piece != null && piece.piece == KNIGHT) return true;
+    }
+
+    return false;
+  }
 }
 
 function Board() {
-  var b = Pieces.black;
-  var w = Pieces.white;
-  this.board = [
-    [b.Rook, b.Knight, b.Bishop, b.Queen, b.King, b.Bishop, b.Knight, b.Rook],
-    [b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn, b.Pawn],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [0, 0, 0, 0, 0, 0, 0, 0],
-    [w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn, w.Pawn],
-    [w.Rook, w.Knight, w.Bishop, w.Queen, w.King, w.Bishop, w.Knight, w.Rook]
-  ];
+  var defaultFEN = 'rkbqkbkr/pppppppp/8/8/8/8/PPPPPPPP/RKBQKBKR';
 
   this.boardFEN = function() {
     var fen = "";
@@ -517,6 +617,7 @@ function Board() {
       for (var j = 0; j < BOARD_SIZE; j++) {
         if (this.isEmpty(i, j)) empties++;
         else {
+          if (empties != 0) fen += empties.toString()
           empties = 0;
           fen += Piece(this.get(i, j)).fenCode;
         }
@@ -528,12 +629,13 @@ function Board() {
   }
 
   this.loadFEN = function(fen) {
-
+    this.board = FEN(fen);
+    this.view.draw(this.board);
   }
 
   this.log = new Log(this);
   this.view = new BoardView('#board');
-  this.view.draw(this.board);
+  this.loadFEN(location.hash != '' ? location.hash.slice(1) : defaultFEN);
 
   this.selection = null;
   this.view.ondeselect = function(x, y) {
@@ -547,7 +649,7 @@ function Board() {
       this.selection = null;
       this.view.clearSelection();
     } else if (!this.isEmpty(x, y)) {
-      var moves = this.suggests.on(x, y);
+      var moves = this.suggests.possibleMoves(x, y);
       for (var i = 0; i < moves.length; i++) {
         var _x = moves[i][0], _y = moves[i][1], type = moves[i][2];
         this.view.suggested(_x, _y, type);
@@ -610,6 +712,7 @@ function Board() {
     var san = this.pgn.shift();
     if (san) {
       this.applySAN(san);
+      location.hash = this.boardFEN();
     }
   }
 
@@ -659,7 +762,7 @@ function Board() {
 
     for (var i = 0; i < positions.length; i++) {
       var pos = positions[i];
-      var suggests = this.suggests.on(pos[0], pos[1]);
+      var suggests = this.suggests.possibleMoves(pos[0], pos[1]);
       for (var j = 0; j < suggests.length; j++) {
         if (suggests[j][0] == moveTo.x && suggests[j][1] == moveTo.y) {
           return pos;
@@ -706,6 +809,45 @@ function Board() {
       this.move(pos[0], pos[1], san.moveTo.x, san.moveTo.y);
     }
 
+    this.switchTurn();
+  }
+
+  this.getPiece = function(x, y) {
+    if (this.outOfBoard(x, y)) return null;
+    if (this.isEmpty(x, y)) return null;
+    return Piece(this.get(x, y))
+  }
+
+  this.eachPiece = function(block) {
+    for (var i = 0; i < BOARD_SIZE; i++) {
+      for (var j = 0; j < BOARD_SIZE; j++) {
+        if (this.isEmpty(i, j)) continue;
+        block(this.getPiece(i, j), i, j)
+      }
+    }
+  }
+
+  this.showAttackedFields = function() {
+    this.view.clearMarks();
+    this.eachPiece(function(piece, x, y) {
+      var enemy = piece.isBlack != this.isBlack;
+      if (enemy) return;
+      var moves = this.suggests.possibleMoves(x, y);
+      for (var i = 0; i < moves.length; i++) {
+        var x = moves[i][0], y = moves[i][1];
+        var attacked = this.suggests.isAttacked(x, y, this.isBlack);
+        var mark;
+        if (attacked) {
+          mark = this.isEmpty(x, y) ? 'move_under_attack' : 'attack_under_attack';
+        } else {
+          mark = this.isEmpty(x, y) ? 'can_move' : 'attack';
+        }
+        this.view.mark(x, y, mark);
+      }
+    }.bind(this));
+  }
+
+  this.switchTurn = function() {
     this.isBlack = !this.isBlack;
   }
 
