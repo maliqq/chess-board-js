@@ -608,7 +608,7 @@ function Suggests(b) {
 }
 
 function Board() {
-  var defaultFEN = 'rkbqkbkr/pppppppp/8/8/8/8/PPPPPPPP/RKBQKBKR';
+  var defaultFEN = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR';
 
   this.boardFEN = function() {
     var fen = "";
