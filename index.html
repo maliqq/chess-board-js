@@ -3,7 +3,6 @@
   <head>
     <title>Chess Board</title>
     <meta charset='utf-8' />
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
     <style type="text/css">
       .board {
         display: table;
@@ -86,7 +85,7 @@
 
       @font-face {
         font-family: chessmaster;
-        src: url(./chessmaster.ttf);
+        src: url(/chessmaster.ttf);
       }
 
       .piece {
@@ -122,35 +121,9 @@
         height: 100px;
       }
     </style>
-    <script type="text/javascript" src="./chess.js"></script>
   </head>
   <body>
-    <script type="text/javascript">
-
-      var board;
-      $(document).ready(function() {
-        board = new Board();
-        $('#pgn').val(localStorage.getItem('pgn'));
-        document.onkeypress = function(e) {
-          if (e.keyCode == 32) {
-            board.forward();
-          } else if (e.keyCode == 26 && (e.ctrlKey || e.metaKey)) {
-            board.back();
-          };
-        };
-      });
-
-    </script>
-    <div id="board"></div>
-
-    <div class="side">
-      <h4>PGN</h4>
-      <textarea id="pgn"></textarea>
-      <div><button onclick="v=$('#pgn').val(); localStorage.setItem('pgn', v); board.parsePGN(v);">Apply</button></div>
-      <div>
-        <label><input type="checkbox" onchange="board.showAttackedFields()" /> Show attacked fields</label><br />
-        <label><input type="checkbox" onchange="board.switchTurn()" /> Switch turn</label>
-      </div>
-    </div>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
