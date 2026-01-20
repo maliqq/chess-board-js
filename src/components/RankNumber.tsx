@@ -1,9 +1,9 @@
 import React from "react";
 
-type RankLetterProps = {
+type RankNumberProps = {
   value: string;
 };
 
-export function RankLetter({ value }: RankLetterProps) {
+export function RankNumber({ value }: RankNumberProps) {
   return <div className="rank">{value}</div>;
 }

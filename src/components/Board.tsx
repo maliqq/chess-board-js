@@ -2,8 +2,8 @@ import React, { useMemo } from "react";
 import { FILES, RANKS } from "../lib/constants";
 import { FEN } from "../lib/fen";
 import { Piece } from "../lib/chess";
-import { FileNumber } from "./FileNumber";
-import { RankLetter } from "./RankLetter";
+import { RankNumber } from "./RankNumber";
+import { FileLetter } from "./FileLetter";
 import { Square } from "./Square";
 import type { PieceInfo } from "../lib/types";
 
@@ -32,7 +32,7 @@ export function Board({ fen }: BoardProps) {
         const row = board[rowIndex] || [];
         return (
           <div className="row" key={`${rankChar}-${rowIndex}`}>
-            <RankLetter value={rankChar} />
+            {rowIndex === 0 && <RankNumber value={rankChar} />}
             {files.map((file, fileIndex) => {
               const pieceCode = row[fileIndex] ?? 0;
               const piece = Piece.fromCode(pieceCode) as PieceInfo;
@@ -55,7 +55,7 @@ export function Board({ fen }: BoardProps) {
       <div className="files">
         <div className="corner"></div>
         {files.map((file, index) => (
-          <FileNumber key={`${file}-${index}`} value={file} />
+          <FileLetter key={`${file}-${index}`} value={file} />
         ))}
       </div>
     </div>

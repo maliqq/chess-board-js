@@ -1,9 +1,9 @@
 import React from "react";
 
-type FileNumberProps = {
+type FileLetterProps = {
   value: string;
 };
 
-export function FileNumber({ value }: FileNumberProps) {
+export function FileLetter({ value }: FileLetterProps) {
   return <div className="file">{value}</div>;
 }
