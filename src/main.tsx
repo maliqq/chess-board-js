@@ -1,69 +1,28 @@
-import $ from "jquery";
-import React, { useEffect } from "react";
+import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { Board as BoardComponent } from "./components/Board";
-import { Board as ChessBoard } from "./lib/chess";
+import { Board } from "./components/Board";
 
-let board: ChessBoard | null = null;
-let hasInit = false;
-
-function initBoardUI() {
-  if (hasInit) return;
-  hasInit = true;
-  board = new ChessBoard("#board");
-  (window as any).board = board;
-  (window as any).$ = $;
-  (window as any).jQuery = $;
-
-  $("#pgn").val(localStorage.getItem("pgn"));
-  $("#apply-pgn")
-    .off("click")
-    .on("click", function () {
-      const v = $("#pgn").val();
-      localStorage.setItem("pgn", String(v ?? ""));
-      board?.parsePGN(String(v ?? ""));
-    });
-  $("#switch-turn")
-    .off("change")
-    .on("change", function () {
-      board?.switchTurn();
-    });
-
-  document.onkeypress = function (e: any) {
-    if (e.keyCode === 32) {
-      board?.forward();
-    } else if (e.keyCode === 26 && (e.ctrlKey || e.metaKey)) {
-      board?.back();
-    }
-  };
-}
+const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 
 function App() {
-  useEffect(() => {
-    initBoardUI();
-    return () => {
-      $("#apply-pgn").off("click");
-      $("#switch-turn").off("change");
-      document.onkeypress = null;
-      hasInit = false;
-      board = null;
-    };
-  }, []);
+  const [fenInput, setFenInput] = useState(DEFAULT_FEN);
+  const fen = useMemo(() => fenInput.trim() || DEFAULT_FEN, [fenInput]);
 
   return (
     <div className="app">
-      <BoardComponent />
+      <Board fen={fen} />
 
       <div className="side">
-        <h4>PGN</h4>
-        <textarea id="pgn"></textarea>
+        <h4>FEN</h4>
+        <textarea
+          id="fen"
+          value={fenInput}
+          onChange={(e) => setFenInput(e.target.value)}
+        ></textarea>
         <div>
-          <button id="apply-pgn">Apply</button>
-        </div>
-        <div>
-          <label>
-            <input id="switch-turn" type="checkbox" /> Switch turn
-          </label>
+          <button type="button" onClick={() => setFenInput(DEFAULT_FEN)}>
+            Reset
+          </button>
         </div>
       </div>
     </div>
