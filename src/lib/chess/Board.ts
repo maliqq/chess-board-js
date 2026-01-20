@@ -108,22 +108,6 @@ class BoardView {
     }
   }
 
-  clearMarks() {
-    const marks = ["can_move", "move_under_attack", "can_attack", "attack_under_attack"];
-    for (let i = 0; i < marks.length; i++) {
-      $(".mark").removeClass(marks[i]);
-    }
-    $(".mark").removeClass("mark");
-  }
-
-  mark(x: number, y: number, style: string) {
-    $("#" + this.getID(x, y)).addClass(style).addClass("mark");
-  }
-
-  unmark(x: number, y: number, style: string) {
-    $("#" + this.getID(x, y)).removeClass(style).addClass("mark");
-  }
-
   private renderPiece(target: JQuery<HTMLElement>, piece: number) {
     const p = Piece.fromCode(piece);
 
@@ -387,70 +371,6 @@ class Suggests {
     return possibleMoves;
   }
 
-  isAttacked(x: number, y: number, isBlack: boolean) {
-    const signs = [
-      [-1, -1],
-      [-1, 1],
-      [1, -1],
-      [1, 1],
-      [-1, 0],
-      [1, 0],
-      [0, 1],
-      [0, -1],
-    ];
-    const ignored: number[] = [];
-    for (let d = 1; d < BOARD_SIZE; d++) {
-      for (let i = 0; i < signs.length; i++) {
-        if (ignored.indexOf(i) !== -1) continue;
-
-        const _x = x + signs[i][0] * d;
-        const _y = y + signs[i][1] * d;
-
-        let piece = this.b.getPiece(_x, _y);
-        if (piece == null) continue;
-        if (piece.isBlack === isBlack) {
-          ignored.push(i);
-          continue;
-        }
-        const pieceType = piece.piece;
-
-        if (signs[i][0] === 0 || signs[i][1] === 0) {
-          if (pieceType === ROOK || pieceType === QUEEN) return true;
-        } else {
-          if (pieceType === BISHOP || pieceType === QUEEN) return true;
-        }
-        if (d === 1 && pieceType === KING) return true;
-      }
-    }
-
-    const d = isBlack ? 1 : -1;
-    const pawn1 = this.b.getPiece(x + d, y + 1);
-    if (pawn1 == null) {
-      const pawn2 = this.b.getPiece(x + d, y - 1);
-      if (pawn2 != null && pawn2.isBlack !== isBlack) return true;
-    } else {
-      if (pawn1.isBlack !== isBlack) return true;
-    }
-
-    const knightMoves = [
-      [2, 1],
-      [2, -1],
-      [1, 2],
-      [-1, 2],
-      [-1, -2],
-      [1, -2],
-      [-2, -1],
-      [-2, 1],
-    ];
-    for (let i = 0; i < knightMoves.length; i++) {
-      const _x = x + knightMoves[i][0],
-        _y = y + knightMoves[i][1];
-      const piece = this.b.getPiece(_x, _y);
-      if (piece != null && piece.piece === KNIGHT) return true;
-    }
-
-    return false;
-  }
 }
 
 export class Board {
@@ -692,30 +612,6 @@ export class Board {
         if (piece) block(piece, i, j);
       }
     }
-  }
-
-  showAttackedFields() {
-    this.view.clearMarks();
-    this.eachPiece(
-      function (piece: PieceInfo, x: number, y: number) {
-        if (piece.isEmpty) return;
-        const enemy = piece.isBlack !== this.isBlack;
-        if (enemy) return;
-        const moves = this.suggests.possibleMoves(x, y);
-        for (let i = 0; i < moves.length; i++) {
-          const x2 = moves[i][0],
-            y2 = moves[i][1];
-          const attacked = this.suggests.isAttacked(x2, y2, this.isBlack);
-          let mark;
-          if (attacked) {
-            mark = this.isEmpty(x2, y2) ? "move_under_attack" : "attack_under_attack";
-          } else {
-            mark = this.isEmpty(x2, y2) ? "can_move" : "attack";
-          }
-          this.view.mark(x2, y2, mark);
-        }
-      }.bind(this),
-    );
   }
 
   switchTurn() {

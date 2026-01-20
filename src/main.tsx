@@ -23,11 +23,6 @@ function initBoardUI() {
       localStorage.setItem("pgn", String(v ?? ""));
       board?.parsePGN(String(v ?? ""));
     });
-  $("#show-attacked")
-    .off("change")
-    .on("change", function () {
-      board?.showAttackedFields();
-    });
   $("#switch-turn")
     .off("change")
     .on("change", function () {
@@ -48,7 +43,6 @@ function App() {
     initBoardUI();
     return () => {
       $("#apply-pgn").off("click");
-      $("#show-attacked").off("change");
       $("#switch-turn").off("change");
       document.onkeypress = null;
       hasInit = false;
@@ -67,10 +61,6 @@ function App() {
           <button id="apply-pgn">Apply</button>
         </div>
         <div>
-          <label>
-            <input id="show-attacked" type="checkbox" /> Show attacked fields
-          </label>
-          <br />
           <label>
             <input id="switch-turn" type="checkbox" /> Switch turn
           </label>
