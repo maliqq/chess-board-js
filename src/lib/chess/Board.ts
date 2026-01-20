@@ -10,8 +10,9 @@ import {
   ROOK,
 } from "../constants";
 import { FEN } from "../fen";
-import { PGN, parseMove } from "../san";
-import type { MoveCoord, MoveHint, PieceInfo, SanMove } from "../types";
+import { PGN } from "../pgn";
+import { parseMove } from "../san";
+import type { MoveCoord, MoveHint, ParsedMove, PieceInfo } from "../types";
 import { Piece } from "./Piece";
 
 class Log {
@@ -267,7 +268,7 @@ export class Board {
   log: Log;
   suggests: Suggests;
   isBlack: boolean;
-  pgn: SanMove[];
+  pgn: ParsedMove[];
 
   constructor(fen?: string) {
     const defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -413,8 +414,8 @@ export class Board {
     console.error("which piece to move?", piece, isBlack, options, moveTo);
   }
 
-  applySAN(san: SanMove) {
-    if (san.draw || san.wonByBlack || san.wonByWhite) return;
+  applySAN(san: ParsedMove) {
+    if (san.result) return;
     if (san.castle) {
       let rank = "1";
       if (this.isBlack) {
@@ -424,13 +425,13 @@ export class Board {
       if (Piece.fromCode(this.get(king.x, king.y)).piece !== KING) {
         console.error("can't castle: king is not in correct place", king);
       }
-      if (san.kingSide) {
+      if (san.castle === "king") {
         const kingTo = parseMove("g" + rank) as MoveCoord;
         this.move(king.x, king.y, kingTo.x, kingTo.y);
         const rook = parseMove("h" + rank) as MoveCoord;
         const rookTo = parseMove("f" + rank) as MoveCoord;
         this.move(rook.x, rook.y, rookTo.x, rookTo.y);
-      } else if (san.queenSide) {
+      } else if (san.castle === "queen") {
         const kingTo = parseMove("c" + rank) as MoveCoord;
         this.move(king.x, king.y, kingTo.x, kingTo.y);
         const rook = parseMove("a" + rank) as MoveCoord;

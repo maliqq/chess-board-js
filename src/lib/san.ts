@@ -1,5 +1,5 @@
 import { FILES, PAWN, RANKS, parsePiece } from "./constants";
-import type { MoveCoord, MoveHint, SanMove } from "./types";
+import type { MoveCoord, MoveHint, ParsedMove } from "./types";
 
 export function Move(x: number, y: number): string {
   return FILES.charAt(y) + RANKS.charAt(x);
@@ -20,21 +20,51 @@ export function parseMove(data: string): MoveHint {
   };
 }
 
-export function SAN(data: string): SanMove {
-  if (data === "1-0") return { wonByWhite: true };
-  if (data === "0-1") return { wonByBlack: true };
-  if (data === "1/2-1/2" || data === "½-½") return { draw: true };
+export function parseSAN(data: string): ParsedMove {
+  if (data === "1-0") {
+    return {
+      piece: PAWN,
+      isCapture: false,
+      isCheck: false,
+      isMate: false,
+      result: "1-0",
+    };
+  }
+  if (data === "0-1") {
+    return {
+      piece: PAWN,
+      isCapture: false,
+      isCheck: false,
+      isMate: false,
+      result: "0-1",
+    };
+  }
+  if (data === "1/2-1/2" || data === "½-½") {
+    return {
+      piece: PAWN,
+      isCapture: false,
+      isCheck: false,
+      isMate: false,
+      result: "1/2-1/2",
+    };
+  }
 
   if (data === "O-O" || data === "0-0") {
     return {
-      castle: true,
-      kingSide: true,
+      piece: PAWN,
+      isCapture: false,
+      isCheck: false,
+      isMate: false,
+      castle: "king",
     };
   }
   if (data === "O-O-O" || data === "0-0-0") {
     return {
-      castle: true,
-      queenSide: true,
+      piece: PAWN,
+      isCapture: false,
+      isCheck: false,
+      isMate: false,
+      castle: "queen",
     };
   }
 
@@ -93,21 +123,4 @@ export function SAN(data: string): SanMove {
     isCapture,
     promotedTo,
   };
-}
-
-export function PGN(data: string): SanMove[] {
-  const moves: SanMove[] = [];
-  const start = data.indexOf("1.");
-  if (start === -1) return moves;
-
-  data = data.slice(start);
-  const movePairs = data.split(/\s?\d+\./);
-  movePairs.shift();
-  for (let i = 0; i < movePairs.length; i++) {
-    const pair = movePairs[i].split(" {")[0];
-    const mm = pair.split(/\s+/).filter(Boolean);
-    if (mm[0]) moves.push(SAN(mm[0]));
-    if (mm[1]) moves.push(SAN(mm[1]));
-  }
-  return moves;
 }

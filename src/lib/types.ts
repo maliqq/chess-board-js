@@ -29,3 +29,15 @@ export type SanMove = {
   wonByWhite?: boolean;
   wonByBlack?: boolean;
 };
+
+export type ParsedMove = {
+  piece: number;
+  moveFrom?: MoveHint;
+  moveTo?: MoveCoord;
+  isCapture: boolean;
+  isCheck: boolean;
+  isMate: boolean;
+  promotedTo?: string;
+  castle?: "king" | "queen";
+  result?: "1-0" | "0-1" | "1/2-1/2";
+};
