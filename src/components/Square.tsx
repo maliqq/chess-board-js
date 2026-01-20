@@ -11,6 +11,7 @@ type SquareProps = {
   piece?: PieceInfo;
   file: string;
   rank: number;
+  onClick?: () => void;
 };
 
 export function Square({
@@ -21,6 +22,7 @@ export function Square({
   piece,
   file,
   rank,
+  onClick,
 }: SquareProps) {
   const fileIndex = FILES.indexOf(file);
   const rankIndex = RANKS.indexOf(String(rank));
@@ -33,7 +35,7 @@ export function Square({
   if (isMoveTo) classes.push("move-to");
 
   return (
-    <div className={classes.join(" ")} data-file={file} data-rank={rank}>
+    <div className={classes.join(" ")} data-file={file} data-rank={rank} onClick={onClick}>
       {piece ? <Piece piece={piece} /> : null}
     </div>
   );

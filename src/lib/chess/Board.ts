@@ -1,128 +1,18 @@
-import $ from "jquery";
 import {
   BISHOP,
   BOARD_SIZE,
   EMPTY,
-  FILES,
   KING,
   KNIGHT,
   MoveType,
   PAWN,
   QUEEN,
   ROOK,
-  RANKS,
 } from "../constants";
 import { FEN } from "../fen";
 import { PGN, parseMove } from "../san";
 import type { MoveCoord, MoveHint, PieceInfo, SanMove } from "../types";
-import { Move } from "./Move";
 import { Piece } from "./Piece";
-
-class BoardView {
-  el: JQuery<HTMLElement>;
-  onselect: (x: number, y: number) => void;
-  ondeselect: (x: number, y: number) => void;
-
-  constructor(el: string) {
-    this.el = $(el);
-    this.onselect = () => {};
-    this.ondeselect = () => {};
-  }
-
-  draw(board: number[][]) {
-    const b = $("<div>").addClass("board");
-    for (let i = 0; i < board.length; i++) {
-      const row = board[i];
-      const r = $("<div>").addClass("row");
-      r.append($("<div>").addClass("rank").text(RANKS[i]));
-      for (let j = 0; j < row.length; j++) {
-        r.append(this.buildPiece(i, j, board[i][j]));
-      }
-      b.append(r);
-    }
-    const files = $("<div>").addClass("files");
-    files.append($("<div>").addClass("corner"));
-    for (let j = 0; j < BOARD_SIZE; j++) {
-      files.append($("<div>").addClass("file").text(FILES[j]));
-    }
-    b.append(files);
-    this.el.html(b);
-  }
-
-  getID(x: number, y: number): string {
-    return `cell_${Move.from(x, y).toString()}`;
-  }
-
-  drawPiece(x: number, y: number, piece: number) {
-    const p = $("#" + this.getID(x, y));
-    this.renderPiece(p, piece);
-  }
-
-  buildPiece(x: number, y: number, piece: number) {
-    const p = $("<div>").attr({ id: this.getID(x, y) });
-    const odd = x % 2 === 0 ? y % 2 === 0 : y % 2 === 1;
-    p.attr("class", `cell ${odd ? "odd" : "even"} `);
-
-    const onselect = (x: number, y: number) => {
-      this.onselect(x, y);
-    };
-
-    const ondeselect = (x: number, y: number) => {
-      this.ondeselect(x, y);
-    };
-
-    p.click((e: JQuery.ClickEvent) => {
-      let el = $(e.target as HTMLElement);
-      if (el.hasClass("piece")) el = el.parent();
-
-      $(".suggested").removeClass("suggested");
-
-      if (el.hasClass("selected")) {
-        el.toggleClass("selected");
-        ondeselect(x, y);
-      } else {
-        $(".selected").removeClass("selected");
-        el.addClass("selected");
-        onselect(x, y);
-      }
-    });
-
-    this.renderPiece(p, piece);
-    return p;
-  }
-
-  clear(x: number, y: number) {
-    $("#" + this.getID(x, y)).html("");
-  }
-
-  clearSelection() {
-    $(".selected").removeClass("selected");
-    $(".suggested").removeClass("suggested");
-  }
-
-  suggested(x: number, y: number, type?: string) {
-    const el = $("#" + this.getID(x, y));
-    el.addClass("suggested");
-    if (typeof type !== "undefined") {
-      el.addClass(type);
-    }
-  }
-
-  private renderPiece(target: JQuery<HTMLElement>, piece: number) {
-    const p = Piece.fromCode(piece);
-
-    if (p.isEmpty) {
-      target.html("");
-      return;
-    }
-
-    target.html(
-      $("<span>")
-        .attr("class", `piece ${p.name} ${p.isBlack ? "black" : "white"}`)
-        .text(p.symbol),
-    );
-  }
-}
 
 class Log {
   b: Board;
@@ -370,53 +260,23 @@ class Suggests {
 
     return possibleMoves;
   }
-
 }
 
 export class Board {
   board: number[][];
-  view: BoardView;
   log: Log;
   suggests: Suggests;
-  selection: [number, number] | null;
   isBlack: boolean;
   pgn: SanMove[];
 
-  constructor(el = "#board", fen?: string) {
+  constructor(fen?: string) {
     const defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 
-    this.board = [];
-    this.view = new BoardView(el);
+    this.board = FEN(fen ?? defaultFEN);
     this.log = new Log(this);
     this.suggests = new Suggests(this);
-    this.selection = null;
     this.isBlack = false;
     this.pgn = [];
-
-    this.loadFEN(fen ?? (location.hash !== "" ? location.hash.slice(1) : defaultFEN));
-
-    this.view.ondeselect = () => {
-      this.selection = null;
-    };
-
-    this.view.onselect = (x: number, y: number) => {
-      if (this.selection !== null && Move.fromTuple(this.selection).toString() !== Move.from(x, y).toString()) {
-        const fromX = this.selection[0],
-          fromY = this.selection[1];
-        this.move(fromX, fromY, x, y);
-        this.selection = null;
-        this.view.clearSelection();
-      } else if (!this.isEmpty(x, y)) {
-        const moves = this.suggests.possibleMoves(x, y);
-        for (let i = 0; i < moves.length; i++) {
-          const _x = moves[i][0],
-            _y = moves[i][1],
-            type = moves[i][2];
-          this.view.suggested(_x, _y, type);
-        }
-        this.selection = [x, y];
-      }
-    };
   }
 
   boardFEN() {
@@ -439,7 +299,6 @@ export class Board {
 
   loadFEN(fen: string) {
     this.board = FEN(fen);
-    this.view.draw(this.board);
   }
 
   get(x: number, y: number) {
@@ -452,12 +311,10 @@ export class Board {
 
   put(x: number, y: number, piece: number) {
     this.board[x][y] = piece;
-    this.view.drawPiece(x, y, piece);
   }
 
   clear(x: number, y: number) {
     this.board[x][y] = EMPTY;
-    this.view.clear(x, y);
   }
 
   move(x: number, y: number, x2: number, y2: number) {
@@ -484,6 +341,10 @@ export class Board {
     return MoveType.CAPTURE;
   }
 
+  possibleMoves(x: number, y: number) {
+    return this.suggests.possibleMoves(x, y);
+  }
+
   parsePGN(data: string) {
     this.pgn = PGN(data);
   }
@@ -492,7 +353,6 @@ export class Board {
     const san = this.pgn.shift();
     if (san) {
       this.applySAN(san);
-      location.hash = this.boardFEN();
     }
   }
 
