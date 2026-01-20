@@ -1,0 +1,728 @@
+import $ from "jquery";
+import {
+  BISHOP,
+  BOARD_SIZE,
+  EMPTY,
+  FILES,
+  KING,
+  KNIGHT,
+  MoveType,
+  PAWN,
+  QUEEN,
+  ROOK,
+  RANKS,
+} from "../constants";
+import { FEN } from "../fen";
+import { PGN, parseMove } from "../san";
+import type { MoveCoord, MoveHint, PieceInfo, SanMove } from "../types";
+import { Move } from "./Move";
+import { Piece } from "./Piece";
+
+class BoardView {
+  el: JQuery<HTMLElement>;
+  onselect: (x: number, y: number) => void;
+  ondeselect: (x: number, y: number) => void;
+
+  constructor(el: string) {
+    this.el = $(el);
+    this.onselect = () => {};
+    this.ondeselect = () => {};
+  }
+
+  draw(board: number[][]) {
+    const b = $("<div>").addClass("board");
+    for (let i = 0; i < board.length; i++) {
+      const row = board[i];
+      const r = $("<div>").addClass("row");
+      r.append($("<div>").addClass("rank").text(RANKS[i]));
+      for (let j = 0; j < row.length; j++) {
+        r.append(this.buildPiece(i, j, board[i][j]));
+      }
+      b.append(r);
+    }
+    const files = $("<div>").addClass("files");
+    files.append($("<div>").addClass("corner"));
+    for (let j = 0; j < BOARD_SIZE; j++) {
+      files.append($("<div>").addClass("file").text(FILES[j]));
+    }
+    b.append(files);
+    this.el.html(b);
+  }
+
+  getID(x: number, y: number): string {
+    return `cell_${Move.from(x, y).toString()}`;
+  }
+
+  drawPiece(x: number, y: number, piece: number) {
+    const p = $("#" + this.getID(x, y));
+    this.renderPiece(p, piece);
+  }
+
+  buildPiece(x: number, y: number, piece: number) {
+    const p = $("<div>").attr({ id: this.getID(x, y) });
+    const odd = x % 2 === 0 ? y % 2 === 0 : y % 2 === 1;
+    p.attr("class", `cell ${odd ? "odd" : "even"} `);
+
+    const onselect = (x: number, y: number) => {
+      this.onselect(x, y);
+    };
+
+    const ondeselect = (x: number, y: number) => {
+      this.ondeselect(x, y);
+    };
+
+    p.click((e: JQuery.ClickEvent) => {
+      let el = $(e.target as HTMLElement);
+      if (el.hasClass("piece")) el = el.parent();
+
+      $(".suggested").removeClass("suggested");
+
+      if (el.hasClass("selected")) {
+        el.toggleClass("selected");
+        ondeselect(x, y);
+      } else {
+        $(".selected").removeClass("selected");
+        el.addClass("selected");
+        onselect(x, y);
+      }
+    });
+
+    this.renderPiece(p, piece);
+    return p;
+  }
+
+  clear(x: number, y: number) {
+    $("#" + this.getID(x, y)).html("");
+  }
+
+  clearSelection() {
+    $(".selected").removeClass("selected");
+    $(".suggested").removeClass("suggested");
+  }
+
+  suggested(x: number, y: number, type?: string) {
+    const el = $("#" + this.getID(x, y));
+    el.addClass("suggested");
+    if (typeof type !== "undefined") {
+      el.addClass(type);
+    }
+  }
+
+  clearMarks() {
+    const marks = ["can_move", "move_under_attack", "can_attack", "attack_under_attack"];
+    for (let i = 0; i < marks.length; i++) {
+      $(".mark").removeClass(marks[i]);
+    }
+    $(".mark").removeClass("mark");
+  }
+
+  mark(x: number, y: number, style: string) {
+    $("#" + this.getID(x, y)).addClass(style).addClass("mark");
+  }
+
+  unmark(x: number, y: number, style: string) {
+    $("#" + this.getID(x, y)).removeClass(style).addClass("mark");
+  }
+
+  private renderPiece(target: JQuery<HTMLElement>, piece: number) {
+    const p = Piece.fromCode(piece);
+
+    if (p.isEmpty) {
+      target.html("");
+      return;
+    }
+
+    target.html(
+      $("<span>")
+        .attr("class", `piece ${p.name} ${p.isBlack ? "black" : "white"}`)
+        .text(p.symbol),
+    );
+  }
+}
+
+class Log {
+  b: Board;
+  moves: Array<{ fromX: number; fromY: number; x: number; y: number; captured: number }>;
+
+  constructor(b: Board) {
+    this.b = b;
+    this.moves = [];
+  }
+
+  track(fromX: number, fromY: number, x: number, y: number) {
+    const entry = {
+      fromX,
+      fromY,
+      x,
+      y,
+      captured: this.b.get(x, y),
+    };
+    this.moves.push(entry);
+  }
+
+  back() {
+    if (this.moves.length === 0) return;
+
+    const entry = this.moves.pop();
+    if (!entry) return;
+
+    const current = this.b.get(entry.x, entry.y);
+    this.b.put(entry.fromX, entry.fromY, current);
+    if (entry.captured) {
+      this.b.put(entry.x, entry.y, entry.captured);
+    } else {
+      this.b.clear(entry.x, entry.y);
+    }
+  }
+}
+
+class Suggests {
+  b: Board;
+
+  constructor(b: Board) {
+    this.b = b;
+  }
+
+  filterShadows(
+    x: number,
+    y: number,
+    isBlack: boolean,
+    moves: number[][],
+    isDiagonal: boolean,
+  ) {
+    const filtered: number[][] = [];
+
+    const directions = [BOARD_SIZE, BOARD_SIZE, BOARD_SIZE, BOARD_SIZE];
+
+    function direction(_x: number, _y: number) {
+      if (isDiagonal) {
+        const d = [Math.sign(_x - x), Math.sign(_y - y)];
+        switch (JSON.stringify(d)) {
+          case "[1,1]":
+            return 0;
+          case "[1,-1]":
+            return 1;
+          case "[-1,-1]":
+            return 2;
+          case "[-1,1]":
+            return 3;
+          default:
+            return 0;
+        }
+      }
+      if (_x === x) {
+        return _y > y ? 0 : 1;
+      }
+      return _x > x ? 2 : 3;
+    }
+
+    function distance(_x: number, _y: number) {
+      return isDiagonal ? Math.abs(_x - x) : _x === x ? Math.abs(_y - y) : Math.abs(_x - x);
+    }
+
+    for (let i = 0; i < moves.length; i++) {
+      const move = moves[i];
+      const _x = move[0],
+        _y = move[1];
+      const moveType = this.b.canMove(_x, _y, isBlack);
+      if (
+        moveType === MoveType.CHECK_ON_KING ||
+        moveType === MoveType.CAPTURE ||
+        moveType === MoveType.OURS
+      ) {
+        const min = directions[direction(_x, _y)];
+        const dist = distance(_x, _y);
+        if (dist < min || min === BOARD_SIZE) {
+          directions[direction(_x, _y)] = dist;
+        }
+      }
+    }
+
+    for (let i = 0; i < moves.length; i++) {
+      const move = moves[i];
+      const _x = move[0],
+        _y = move[1];
+      const min = directions[direction(_x, _y)];
+      const dist = distance(_x, _y);
+      const moveType = this.b.canMove(_x, _y, isBlack);
+      if (moveType === MoveType.OURS) continue;
+      if (moveType === MoveType.CAPTURE) {
+        move.push("capture");
+      }
+      if (dist <= min || min === BOARD_SIZE) {
+        filtered.push(move);
+      }
+    }
+
+    return filtered;
+  }
+
+  possibleMoves(x: number, y: number) {
+    const p = Piece.fromCode(this.b.get(x, y));
+    if (p.isEmpty) return [];
+
+    const isBlack = p.isBlack;
+
+    const checkPossibleMove = (x: number, y: number) => {
+      const moveType = this.b.canMove(x, y, isBlack);
+      if (moveType === MoveType.POSSIBLE) {
+        return [x, y];
+      }
+      return false;
+    };
+
+    const checkPossibleCapture = (x: number, y: number) => {
+      const moveType = this.b.canMove(x, y, isBlack);
+      if (moveType === MoveType.CAPTURE) {
+        return [x, y];
+      }
+      return false;
+    };
+
+    const checkPossibleMoveOrCapture = (x: number, y: number) => {
+      const moveType = this.b.canMove(x, y, isBlack);
+      if (moveType === MoveType.POSSIBLE) {
+        return [x, y];
+      }
+      if (moveType === MoveType.CAPTURE) {
+        return [x, y, "capture"];
+      }
+      return false;
+    };
+
+    const diagonalMove = () => {
+      const moves: number[][] = [];
+      for (let i = 0; i < BOARD_SIZE; i++) {
+        if (i !== x) {
+          const k = x - i;
+          const up = y - k;
+          const down = y + k;
+          if (!this.b.outOfBoard(i, up)) moves.push([i, up]);
+          if (!this.b.outOfBoard(i, down)) moves.push([i, down]);
+        }
+      }
+      return moves;
+    };
+
+    const directMove = () => {
+      const moves: number[][] = [];
+      for (let i = 0; i < BOARD_SIZE; i++) {
+        if (i === x) continue;
+        if (!this.b.outOfBoard(i, y)) moves.push([i, y]);
+      }
+
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        if (j === y) continue;
+        if (!this.b.outOfBoard(x, j)) moves.push([x, j]);
+      }
+      return moves;
+    };
+
+    const possibleMoves: any[] = [];
+    if (p.piece === PAWN) {
+      const o = isBlack ? 1 : -1;
+      const isStartingPos = isBlack ? x === 1 : x === 6;
+      const move = checkPossibleMove(x + o, y);
+      if (move !== false) {
+        possibleMoves.push(move);
+        if (isStartingPos) {
+          const move2 = checkPossibleMove(x + o * 2, y);
+          if (move2 !== false) {
+            possibleMoves.push(move2);
+          }
+        }
+      }
+      const move1 = checkPossibleCapture(x + o, y + 1);
+      const move2 = checkPossibleCapture(x + o, y - 1);
+      if (move1 !== false) possibleMoves.push(move1);
+      if (move2 !== false) possibleMoves.push(move2);
+    } else if (p.piece === ROOK) {
+      possibleMoves.push(...this.filterShadows(x, y, isBlack, directMove(), false));
+    } else if (p.piece === KNIGHT) {
+      const knightMoves = [
+        [2, 1],
+        [2, -1],
+        [1, 2],
+        [-1, 2],
+        [-1, -2],
+        [1, -2],
+        [-2, -1],
+        [-2, 1],
+      ];
+      for (let i = 0; i < knightMoves.length; i++) {
+        const _x = x + knightMoves[i][0],
+          _y = y + knightMoves[i][1];
+        const move = checkPossibleMoveOrCapture(_x, _y);
+        if (move !== false) {
+          possibleMoves.push(move);
+        }
+      }
+    } else if (p.piece === QUEEN) {
+      possibleMoves.push(...this.filterShadows(x, y, isBlack, directMove(), false));
+      possibleMoves.push(...this.filterShadows(x, y, isBlack, diagonalMove(), true));
+    } else if (p.piece === KING) {
+      const moves = [
+        [1, 1],
+        [-1, -1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+        [1, 0],
+        [-1, 0],
+        [0, -1],
+        [0, 1],
+      ];
+      for (let i = 0; i < moves.length; i++) {
+        const _x = x + moves[i][0],
+          _y = y + moves[i][1];
+        const move = checkPossibleMoveOrCapture(_x, _y);
+        if (move !== false) {
+          possibleMoves.push(move);
+        }
+      }
+    } else if (p.piece === BISHOP) {
+      possibleMoves.push(...this.filterShadows(x, y, isBlack, diagonalMove(), true));
+    }
+
+    return possibleMoves;
+  }
+
+  isAttacked(x: number, y: number, isBlack: boolean) {
+    const signs = [
+      [-1, -1],
+      [-1, 1],
+      [1, -1],
+      [1, 1],
+      [-1, 0],
+      [1, 0],
+      [0, 1],
+      [0, -1],
+    ];
+    const ignored: number[] = [];
+    for (let d = 1; d < BOARD_SIZE; d++) {
+      for (let i = 0; i < signs.length; i++) {
+        if (ignored.indexOf(i) !== -1) continue;
+
+        const _x = x + signs[i][0] * d;
+        const _y = y + signs[i][1] * d;
+
+        let piece = this.b.getPiece(_x, _y);
+        if (piece == null) continue;
+        if (piece.isBlack === isBlack) {
+          ignored.push(i);
+          continue;
+        }
+        const pieceType = piece.piece;
+
+        if (signs[i][0] === 0 || signs[i][1] === 0) {
+          if (pieceType === ROOK || pieceType === QUEEN) return true;
+        } else {
+          if (pieceType === BISHOP || pieceType === QUEEN) return true;
+        }
+        if (d === 1 && pieceType === KING) return true;
+      }
+    }
+
+    const d = isBlack ? 1 : -1;
+    const pawn1 = this.b.getPiece(x + d, y + 1);
+    if (pawn1 == null) {
+      const pawn2 = this.b.getPiece(x + d, y - 1);
+      if (pawn2 != null && pawn2.isBlack !== isBlack) return true;
+    } else {
+      if (pawn1.isBlack !== isBlack) return true;
+    }
+
+    const knightMoves = [
+      [2, 1],
+      [2, -1],
+      [1, 2],
+      [-1, 2],
+      [-1, -2],
+      [1, -2],
+      [-2, -1],
+      [-2, 1],
+    ];
+    for (let i = 0; i < knightMoves.length; i++) {
+      const _x = x + knightMoves[i][0],
+        _y = y + knightMoves[i][1];
+      const piece = this.b.getPiece(_x, _y);
+      if (piece != null && piece.piece === KNIGHT) return true;
+    }
+
+    return false;
+  }
+}
+
+export class Board {
+  board: number[][];
+  view: BoardView;
+  log: Log;
+  suggests: Suggests;
+  selection: [number, number] | null;
+  isBlack: boolean;
+  pgn: SanMove[];
+
+  constructor(el = "#board", fen?: string) {
+    const defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+
+    this.board = [];
+    this.view = new BoardView(el);
+    this.log = new Log(this);
+    this.suggests = new Suggests(this);
+    this.selection = null;
+    this.isBlack = false;
+    this.pgn = [];
+
+    this.loadFEN(fen ?? (location.hash !== "" ? location.hash.slice(1) : defaultFEN));
+
+    this.view.ondeselect = () => {
+      this.selection = null;
+    };
+
+    this.view.onselect = (x: number, y: number) => {
+      if (this.selection !== null && Move.fromTuple(this.selection).toString() !== Move.from(x, y).toString()) {
+        const fromX = this.selection[0],
+          fromY = this.selection[1];
+        this.move(fromX, fromY, x, y);
+        this.selection = null;
+        this.view.clearSelection();
+      } else if (!this.isEmpty(x, y)) {
+        const moves = this.suggests.possibleMoves(x, y);
+        for (let i = 0; i < moves.length; i++) {
+          const _x = moves[i][0],
+            _y = moves[i][1],
+            type = moves[i][2];
+          this.view.suggested(_x, _y, type);
+        }
+        this.selection = [x, y];
+      }
+    };
+  }
+
+  boardFEN() {
+    let fen = "";
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      let empties = 0;
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        if (this.isEmpty(i, j)) empties++;
+        else {
+          if (empties !== 0) fen += empties.toString();
+          empties = 0;
+          fen += Piece.fromCode(this.get(i, j)).fenCode;
+        }
+      }
+      if (empties > 0) fen += empties.toString();
+      if (i !== 7) fen += "/";
+    }
+    return fen;
+  }
+
+  loadFEN(fen: string) {
+    this.board = FEN(fen);
+    this.view.draw(this.board);
+  }
+
+  get(x: number, y: number) {
+    return this.board[x][y];
+  }
+
+  isEmpty(x: number, y: number) {
+    return this.board[x][y] === EMPTY;
+  }
+
+  put(x: number, y: number, piece: number) {
+    this.board[x][y] = piece;
+    this.view.drawPiece(x, y, piece);
+  }
+
+  clear(x: number, y: number) {
+    this.board[x][y] = EMPTY;
+    this.view.clear(x, y);
+  }
+
+  move(x: number, y: number, x2: number, y2: number) {
+    const piece = this.get(x, y);
+    this.clear(x, y);
+    this.log.track(x, y, x2, y2);
+    this.put(x2, y2, piece);
+  }
+
+  outOfBoard(x: number, y: number) {
+    return x >= BOARD_SIZE || y >= BOARD_SIZE || x < 0 || y < 0;
+  }
+
+  canMove(x: number, y: number, isBlack: boolean) {
+    if (this.outOfBoard(x, y)) return MoveType.OUT_OF_BOARD;
+
+    if (this.isEmpty(x, y)) return MoveType.POSSIBLE;
+
+    const p = Piece.fromCode(this.board[x][y]);
+    if (p.isBlack === isBlack) {
+      return MoveType.OURS;
+    }
+    if (p.piece === KING) return MoveType.CHECK_ON_KING;
+    return MoveType.CAPTURE;
+  }
+
+  parsePGN(data: string) {
+    this.pgn = PGN(data);
+  }
+
+  forward() {
+    const san = this.pgn.shift();
+    if (san) {
+      this.applySAN(san);
+      location.hash = this.boardFEN();
+    }
+  }
+
+  pawnPosition(column: number, row: number, isBlack: boolean) {
+    const j = column;
+    if (isBlack) {
+      for (let i = row - 1; i >= 0; i--) {
+        if (this.isEmpty(i, j)) continue;
+        const p = Piece.fromCode(this.get(i, j));
+        if (p.isBlack) return [i, j];
+      }
+    } else {
+      for (let i = row + 1; i < BOARD_SIZE; i++) {
+        if (this.isEmpty(i, j)) continue;
+        const p = Piece.fromCode(this.get(i, j));
+        if (!p.isBlack) return [i, j];
+      }
+    }
+  }
+
+  piecePositions(isBlack: boolean) {
+    const positions: Record<number, [number, number][]> = {};
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        if (this.isEmpty(i, j)) continue;
+        const p = Piece.fromCode(this.get(i, j));
+        if (p.isBlack !== isBlack) continue;
+        positions[p.piece] = positions[p.piece] || [];
+        positions[p.piece].push([i, j]);
+      }
+    }
+    return positions;
+  }
+
+  piecePosition(piece: number, isBlack: boolean, options: MoveHint, moveTo: MoveCoord) {
+    const positions = this.piecePositions(isBlack)[piece];
+    if (positions.length === 1) {
+      return positions[0];
+    }
+
+    for (let i = 0; i < positions.length; i++) {
+      const pos = positions[i];
+
+      if (options.y && pos[1] === options.y) return pos;
+      if (options.x && pos[0] === options.x) return pos;
+    }
+
+    for (let i = 0; i < positions.length; i++) {
+      const pos = positions[i];
+      const suggests = this.suggests.possibleMoves(pos[0], pos[1]);
+      for (let j = 0; j < suggests.length; j++) {
+        if (suggests[j][0] === moveTo.x && suggests[j][1] === moveTo.y) {
+          return pos;
+        }
+      }
+    }
+
+    console.error("which piece to move?", piece, isBlack, options, moveTo);
+  }
+
+  applySAN(san: SanMove) {
+    if (san.draw || san.wonByBlack || san.wonByWhite) return;
+    if (san.castle) {
+      let rank = "1";
+      if (this.isBlack) {
+        rank = "8";
+      }
+      const king = parseMove("e" + rank) as MoveCoord;
+      if (Piece.fromCode(this.get(king.x, king.y)).piece !== KING) {
+        console.error("can't castle: king is not in correct place", king);
+      }
+      if (san.kingSide) {
+        const kingTo = parseMove("g" + rank) as MoveCoord;
+        this.move(king.x, king.y, kingTo.x, kingTo.y);
+        const rook = parseMove("h" + rank) as MoveCoord;
+        const rookTo = parseMove("f" + rank) as MoveCoord;
+        this.move(rook.x, rook.y, rookTo.x, rookTo.y);
+      } else if (san.queenSide) {
+        const kingTo = parseMove("c" + rank) as MoveCoord;
+        this.move(king.x, king.y, kingTo.x, kingTo.y);
+        const rook = parseMove("a" + rank) as MoveCoord;
+        const rookTo = parseMove("d" + rank) as MoveCoord;
+        this.move(rook.x, rook.y, rookTo.x, rookTo.y);
+      }
+    } else if (san.piece === PAWN) {
+      const moveTo = san.moveTo as MoveCoord;
+      const column = san.isCapture ? san.moveFrom?.y : moveTo.y;
+      const pos = this.pawnPosition(column as number, moveTo.x, this.isBlack);
+      if (!pos) {
+        console.error("can't move pawn");
+      } else {
+        this.move(pos[0], pos[1], moveTo.x, moveTo.y);
+      }
+    } else {
+      const moveFrom = san.moveFrom as MoveHint;
+      const moveTo = san.moveTo as MoveCoord;
+      const pos = this.piecePosition(san.piece as number, this.isBlack, moveFrom, moveTo);
+      if (pos) {
+        this.move(pos[0], pos[1], moveTo.x, moveTo.y);
+      }
+    }
+
+    this.switchTurn();
+  }
+
+  getPiece(x: number, y: number) {
+    if (this.outOfBoard(x, y)) return null;
+    if (this.isEmpty(x, y)) return null;
+    return Piece.fromCode(this.get(x, y));
+  }
+
+  eachPiece(block: (piece: PieceInfo, x: number, y: number) => void) {
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        if (this.isEmpty(i, j)) continue;
+        const piece = this.getPiece(i, j);
+        if (piece) block(piece, i, j);
+      }
+    }
+  }
+
+  showAttackedFields() {
+    this.view.clearMarks();
+    this.eachPiece(
+      function (piece: PieceInfo, x: number, y: number) {
+        if (piece.isEmpty) return;
+        const enemy = piece.isBlack !== this.isBlack;
+        if (enemy) return;
+        const moves = this.suggests.possibleMoves(x, y);
+        for (let i = 0; i < moves.length; i++) {
+          const x2 = moves[i][0],
+            y2 = moves[i][1];
+          const attacked = this.suggests.isAttacked(x2, y2, this.isBlack);
+          let mark;
+          if (attacked) {
+            mark = this.isEmpty(x2, y2) ? "move_under_attack" : "attack_under_attack";
+          } else {
+            mark = this.isEmpty(x2, y2) ? "can_move" : "attack";
+          }
+          this.view.mark(x2, y2, mark);
+        }
+      }.bind(this),
+    );
+  }
+
+  switchTurn() {
+    this.isBlack = !this.isBlack;
+  }
+
+  back() {
+    this.log.back();
+  }
+}
