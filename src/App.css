@@ -80,6 +80,7 @@
   background: white;
   cursor: pointer;
   color: #4b5563;
+  align-self: flex-start;
 }
 .copy-btn:hover {
   background: #f9fafb;
@@ -207,6 +208,9 @@
 .openings-bar .opening-row:hover {
   background: #f3f4f6;
 }
+.openings-bar .opening-row.clickable {
+  cursor: pointer;
+}
 .openings-bar .opening-main {
   display: flex;
   gap: 8px;
@@ -243,4 +247,15 @@
 }
 .openings-bar .stats-bar .black {
   background: #1f2937;
+}
+.openings-bar .section-separator {
+  height: 1px;
+  background: #9ca3af;
+  margin: 8px 12px;
+}
+.openings-bar .completed-section .opening-row {
+  background: #f0fdf4;
+}
+.openings-bar .completed-section .opening-row:hover {
+  background: #dcfce7;
 }

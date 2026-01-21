@@ -628,6 +628,37 @@ export class Board {
     this.switchTurn();
   }
 
+  // Get move coordinates from parsed SAN without applying the move
+  getMoveCoords(san: ParsedMove): { from: [number, number]; to: [number, number] } | null {
+    if (san.result) return null;
+
+    if (san.castle) {
+      let rank = this.isBlack ? "8" : "1";
+      const king = parseMove("e" + rank) as MoveCoord;
+      if (san.castle === "king") {
+        const kingTo = parseMove("g" + rank) as MoveCoord;
+        return { from: [king.x, king.y], to: [kingTo.x, kingTo.y] };
+      } else {
+        const kingTo = parseMove("c" + rank) as MoveCoord;
+        return { from: [king.x, king.y], to: [kingTo.x, kingTo.y] };
+      }
+    }
+
+    if (san.piece === PAWN) {
+      const moveTo = san.moveTo as MoveCoord;
+      const column = san.isCapture ? san.moveFrom?.y : moveTo.y;
+      const pos = this.pawnPosition(column as number, moveTo.x, this.isBlack);
+      if (!pos) return null;
+      return { from: [pos[0], pos[1]], to: [moveTo.x, moveTo.y] };
+    }
+
+    const moveFrom = san.moveFrom as MoveHint;
+    const moveTo = san.moveTo as MoveCoord;
+    const pos = this.piecePosition(san.piece as number, this.isBlack, moveFrom, moveTo);
+    if (!pos) return null;
+    return { from: [pos[0], pos[1]], to: [moveTo.x, moveTo.y] };
+  }
+
   getPiece(x: number, y: number) {
     if (this.outOfBoard(x, y)) return null;
     if (this.isEmpty(x, y)) return null;

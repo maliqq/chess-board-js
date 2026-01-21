@@ -38,19 +38,43 @@ export function App() {
   const [viewIndex, setViewIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [copiedField, setCopiedField] = useState<"fen" | "pgn" | null>(null);
+  const [previewSan, setPreviewSan] = useState<string | null>(null);
 
   const fen = useMemo(() => computeFen(baseFen, moves, viewIndex), [baseFen, moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
   const activeColor = fen.split(" ")[1] === "b" ? "b" : "w";
   const visibleMoves = useMemo(() => moves.slice(0, viewIndex), [moves, viewIndex]);
 
-  const openingsWithContinuations = useMemo(() => {
-    const matches = searchOpenings(visibleMoves, activeColor).slice(0, TOP_OPENINGS);
-    return matches.map((opening) => {
+  // Compute preview move coordinates from SAN
+  const previewMove = useMemo(() => {
+    if (!previewSan) return null;
+    try {
+      const board = new ChessBoard(fen);
+      return board.getMoveCoords(parseSAN(previewSan));
+    } catch {
+      return null;
+    }
+  }, [fen, previewSan]);
+
+  const { completedOpenings, continuationOpenings } = useMemo(() => {
+    const matches = searchOpenings(visibleMoves, activeColor);
+    const completed: Array<{ opening: typeof matches[0]; nextSan?: string }> = [];
+    const continuations: Array<{ opening: typeof matches[0]; nextSan?: string }> = [];
+
+    for (const opening of matches) {
       const { sans } = parsePGN(opening.pgn);
-      const nextSan = sans[visibleMoves.length];
-      return { opening, nextSan };
-    });
+      if (sans.length <= visibleMoves.length) {
+        // Completed: we've played all moves of this opening
+        completed.push({ opening, nextSan: undefined });
+      } else {
+        // Continuation: has more moves to play
+        continuations.push({ opening, nextSan: sans[visibleMoves.length] });
+      }
+      // Stop once we have enough
+      if (completed.length + continuations.length >= TOP_OPENINGS) break;
+    }
+
+    return { completedOpenings: completed, continuationOpenings: continuations };
   }, [visibleMoves, activeColor]);
 
   const isAtEnd = viewIndex === moves.length;
@@ -86,12 +110,23 @@ export function App() {
     setTimeout(() => setCopiedField(null), 1500);
   };
 
+  const handleOpeningClick = (san: string) => {
+    if (!isAtEnd) return;
+    setMoves((prev) => [...prev, san]);
+    setViewIndex((prev) => prev + 1);
+    setPreviewSan(null);
+  };
+
+  const handleOpeningHover = (san: string | null) => {
+    setPreviewSan(san);
+  };
+
   return (
     <div className="app">
       <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
       <div className="center-panel">
-        <Board fen={fen} swapped={flipped} onMove={handleMove} />
+        <Board fen={fen} swapped={flipped} onMove={handleMove} previewMove={previewMove} />
 
         <div className="controls">
           <button type="button" onClick={handleReset} className="btn">
@@ -134,7 +169,12 @@ export function App() {
         </div>
       </div>
 
-      <OpeningsBar openings={openingsWithContinuations} />
+      <OpeningsBar
+        completed={completedOpenings}
+        continuations={continuationOpenings}
+        onMoveClick={handleOpeningClick}
+        onMoveHover={handleOpeningHover}
+      />
     </div>
   );
 }

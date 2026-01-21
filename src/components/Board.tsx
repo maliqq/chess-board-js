@@ -10,6 +10,7 @@ type BoardProps = {
   fen: string;
   swapped?: boolean;
   onMove?: (san: string, newFen: string) => void;
+  previewMove?: { from: [number, number]; to: [number, number] } | null;
 };
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -18,7 +19,7 @@ function moveKey(x: number, y: number) {
   return `${x}:${y}`;
 }
 
-export function Board({ fen, swapped = false, onMove }: BoardProps) {
+export function Board({ fen, swapped = false, onMove, previewMove }: BoardProps) {
   const [boardModel, setBoardModel] = useState(() => {
     try {
       return new ChessBoard(fen || DEFAULT_FEN);
@@ -123,13 +124,17 @@ export function Board({ fen, swapped = false, onMove }: BoardProps) {
               const isSelected =
                 selected?.[0] === boardRowIndex && selected?.[1] === boardColIndex;
               const isPossibleMoveTo = possibleMoveSet.has(moveKey(boardRowIndex, boardColIndex));
+              const isPreviewFrom =
+                previewMove?.from[0] === boardRowIndex && previewMove?.from[1] === boardColIndex;
+              const isPreviewTo =
+                previewMove?.to[0] === boardRowIndex && previewMove?.to[1] === boardColIndex;
               return (
                 <Square
                   key={`${file}${rankChar}`}
                   file={file}
                   rank={rank}
-                  isMoveFrom={false}
-                  isMoveTo={false}
+                  isMoveFrom={isPreviewFrom}
+                  isMoveTo={isPreviewTo}
                   isSelected={isSelected}
                   isPossibleMoveTo={isPossibleMoveTo}
                   piece={piece.isEmpty ? undefined : piece}
