@@ -42,6 +42,13 @@ export function Board({ fen, swapped = false, onMove, previewMove }: BoardProps)
   const handleSquareClick = (x: number, y: number) => {
     const clickedPiece = Piece.fromCode(boardModel.get(x, y));
 
+    // If clicked on the already selected piece, deselect it
+    if (selected && selected[0] === x && selected[1] === y) {
+      setSelected(null);
+      setPossibleMoves([]);
+      return;
+    }
+
     // If we have a selected piece and clicked on a valid move target
     if (selected) {
       const isValidMove = possibleMoves.some((m) => m[0] === x && m[1] === y);
