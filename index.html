@@ -94,14 +94,103 @@
       }
 
 
+      .app {
+        display: flex;
+        gap: 20px;
+        padding: 20px;
+      }
+
       .side {
-        padding-left: 20px;
-        display: block;
-        float: left;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .side h4 {
+        margin: 10px 0 5px 0;
       }
       .side textarea {
-        width: 400px;
-        height: 100px;
+        width: 300px;
+        height: 60px;
+        font-family: monospace;
+        font-size: 12px;
+      }
+      .side .buttons {
+        display: flex;
+        gap: 8px;
+      }
+      .side button {
+        padding: 6px 12px;
+        cursor: pointer;
+      }
+
+      .move-list {
+        display: flex;
+        flex-direction: column;
+        width: 180px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: #fafafa;
+        font-family: sans-serif;
+        font-size: 14px;
+      }
+      .move-list .moves {
+        flex: 1;
+        overflow-y: auto;
+        max-height: 400px;
+        padding: 8px;
+      }
+      .move-list .empty {
+        color: #999;
+        font-style: italic;
+        padding: 10px;
+        text-align: center;
+      }
+      .move-list .move-pair {
+        display: flex;
+        gap: 6px;
+        padding: 3px 0;
+      }
+      .move-list .move-num {
+        color: #666;
+        min-width: 24px;
+      }
+      .move-list .move {
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 3px;
+        min-width: 45px;
+      }
+      .move-list .move:hover {
+        background: #e0e0e0;
+      }
+      .move-list .move.active {
+        background: #4a90d9;
+        color: white;
+      }
+      .move-list .nav-controls {
+        display: flex;
+        justify-content: center;
+        gap: 4px;
+        padding: 8px;
+        border-top: 1px solid #ddd;
+        background: #f0f0f0;
+      }
+      .move-list .nav-controls button {
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .move-list .nav-controls button:hover:not(:disabled) {
+        background: #e8e8e8;
+      }
+      .move-list .nav-controls button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
       }
     </style>
   </head>

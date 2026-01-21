@@ -1,18 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FILES, PAWN, RANKS } from "../lib/constants";
+import { FILES, PAWN, PIECE_LETTERS, RANKS } from "../lib/constants";
 import { Board as ChessBoard, Piece } from "../lib/chess";
 import { FileLetter } from "./FileLetter";
 import { RankNumber } from "./RankNumber";
 import { Square } from "./Square";
 import type { PieceInfo } from "../lib/types";
-
-const PIECE_LETTERS: Record<number, string> = {
-  2: "B", // BISHOP
-  3: "N", // KNIGHT
-  4: "R", // ROOK
-  5: "Q", // QUEEN
-  6: "K", // KING
-};
 
 type BoardProps = {
   fen: string;
@@ -68,8 +60,8 @@ export function Board({ fen, swapped = false, onMove }: BoardProps) {
           san = pieceLetter + (isCapture ? "x" : "") + toSquare;
         }
 
-        // Apply the move
-        boardModel.move(fromX, fromY, x, y);
+        // Apply the move (pass SAN for history tracking)
+        boardModel.move(fromX, fromY, x, y, san);
         boardModel.switchTurn();
 
         // Notify parent with SAN and new FEN

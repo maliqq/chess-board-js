@@ -41,6 +41,24 @@ export const SYMBOLS: Record<string, Record<number, string>> = {
   },
 };
 
+// SAN piece letters -> Unicode symbols (for display)
+export const PIECE_SYMBOLS: Record<string, string> = {
+  K: "♔",
+  Q: "♕",
+  R: "♖",
+  B: "♗",
+  N: "♘",
+};
+
+// Piece code -> SAN letter (for building SAN notation)
+export const PIECE_LETTERS: Record<number, string> = {
+  [BISHOP]: "B",
+  [KNIGHT]: "N",
+  [ROOK]: "R",
+  [QUEEN]: "Q",
+  [KING]: "K",
+};
+
 export const Pieces = {
   byCode: {} as Record<number, PieceInfo>,
   black: {

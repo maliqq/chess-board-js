@@ -15,39 +15,106 @@ import { parseMove } from "../san";
 import type { MoveCoord, MoveHint, ParsedMove, PieceInfo } from "../types";
 import { Piece } from "./Piece";
 
+type MoveEntry = {
+  fromX: number;
+  fromY: number;
+  x: number;
+  y: number;
+  piece: number;
+  captured: number;
+  san: string;
+};
+
 class Log {
   b: Board;
-  moves: Array<{ fromX: number; fromY: number; x: number; y: number; captured: number }>;
+  moves: MoveEntry[];
+  index: number; // Current position in history (0 = start, moves.length = end)
 
   constructor(b: Board) {
     this.b = b;
     this.moves = [];
+    this.index = 0;
   }
 
-  track(fromX: number, fromY: number, x: number, y: number) {
-    const entry = {
+  get length() {
+    return this.moves.length;
+  }
+
+  get isAtStart() {
+    return this.index === 0;
+  }
+
+  get isAtEnd() {
+    return this.index === this.moves.length;
+  }
+
+  get sans(): string[] {
+    return this.moves.map((m) => m.san);
+  }
+
+  track(fromX: number, fromY: number, x: number, y: number, san: string) {
+    // If we're not at the end, truncate future moves
+    if (this.index < this.moves.length) {
+      this.moves = this.moves.slice(0, this.index);
+    }
+
+    const entry: MoveEntry = {
       fromX,
       fromY,
       x,
       y,
+      piece: this.b.get(fromX, fromY),
       captured: this.b.get(x, y),
+      san,
     };
     this.moves.push(entry);
+    this.index++;
   }
 
-  back() {
-    if (this.moves.length === 0) return;
+  back(): boolean {
+    if (this.index === 0) return false;
 
-    const entry = this.moves.pop();
-    if (!entry) return;
+    this.index--;
+    const entry = this.moves[this.index];
 
-    const current = this.b.get(entry.x, entry.y);
-    this.b.put(entry.fromX, entry.fromY, current);
+    // Undo the move: restore piece to original position
+    this.b.put(entry.fromX, entry.fromY, entry.piece);
     if (entry.captured) {
       this.b.put(entry.x, entry.y, entry.captured);
     } else {
       this.b.clear(entry.x, entry.y);
     }
+    this.b.switchTurn();
+
+    return true;
+  }
+
+  forward(): boolean {
+    if (this.index >= this.moves.length) return false;
+
+    const entry = this.moves[this.index];
+    this.index++;
+
+    // Redo the move
+    this.b.clear(entry.fromX, entry.fromY);
+    this.b.put(entry.x, entry.y, entry.piece);
+    this.b.switchTurn();
+
+    return true;
+  }
+
+  start(): void {
+    while (this.back()) {}
+  }
+
+  end(): void {
+    while (this.forward()) {}
+  }
+
+  goTo(targetIndex: number): void {
+    const clamped = Math.max(0, Math.min(targetIndex, this.moves.length));
+    while (this.index > clamped) this.back();
+    while (this.index < clamped) this.forward();
   }
 }
 
@@ -331,10 +398,10 @@ export class Board {
     this.board[x][y] = EMPTY;
   }
 
-  move(x: number, y: number, x2: number, y2: number) {
+  move(x: number, y: number, x2: number, y2: number, san = "") {
     const piece = this.get(x, y);
+    this.log.track(x, y, x2, y2, san);
     this.clear(x, y);
-    this.log.track(x, y, x2, y2);
     this.put(x2, y2, piece);
   }
 
@@ -363,7 +430,7 @@ export class Board {
     this.pgn = parsePGN(data).parsed;
   }
 
-  forward() {
+  playNextPgn() {
     const san = this.pgn.shift();
     if (san) {
       this.applySAN(san);
@@ -493,7 +560,45 @@ export class Board {
     this.activeColor = this.isBlack ? "b" : "w";
   }
 
-  back() {
-    this.log.back();
+  // Navigation methods
+  back(): boolean {
+    return this.log.back();
+  }
+
+  forward(): boolean {
+    return this.log.forward();
+  }
+
+  start(): void {
+    this.log.start();
+  }
+
+  end(): void {
+    this.log.end();
+  }
+
+  goTo(index: number): void {
+    this.log.goTo(index);
+  }
+
+  // Log accessors
+  get moveIndex(): number {
+    return this.log.index;
+  }
+
+  get moveCount(): number {
+    return this.log.length;
+  }
+
+  get isAtStart(): boolean {
+    return this.log.isAtStart;
+  }
+
+  get isAtEnd(): boolean {
+    return this.log.isAtEnd;
+  }
+
+  get sans(): string[] {
+    return this.log.sans;
   }
 }
