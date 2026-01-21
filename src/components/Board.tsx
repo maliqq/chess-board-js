@@ -1,15 +1,23 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FILES, RANKS } from "../lib/constants";
+import { FILES, PAWN, RANKS } from "../lib/constants";
 import { Board as ChessBoard, Piece } from "../lib/chess";
 import { FileLetter } from "./FileLetter";
 import { RankNumber } from "./RankNumber";
 import { Square } from "./Square";
 import type { PieceInfo } from "../lib/types";
 
+const PIECE_LETTERS: Record<number, string> = {
+  2: "B", // BISHOP
+  3: "N", // KNIGHT
+  4: "R", // ROOK
+  5: "Q", // QUEEN
+  6: "K", // KING
+};
+
 type BoardProps = {
   fen: string;
   swapped?: boolean;
-  onMove?: (from: [number, number], to: [number, number], san: string) => void;
+  onMove?: (san: string, newFen: string) => void;
 };
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -46,16 +54,27 @@ export function Board({ fen, swapped = false, onMove }: BoardProps) {
       const isValidMove = possibleMoves.some((m) => m[0] === x && m[1] === y);
 
       if (isValidMove) {
-        // Apply the move
         const [fromX, fromY] = selected;
+        const movedPiece = Piece.fromCode(boardModel.get(fromX, fromY));
+        const isCapture = !clickedPiece.isEmpty;
+
+        // Build SAN notation
+        const toSquare = FILES[y] + RANKS[x];
+        let san = "";
+        if (movedPiece.piece === PAWN) {
+          san = isCapture ? FILES[fromY] + "x" + toSquare : toSquare;
+        } else {
+          const pieceLetter = PIECE_LETTERS[movedPiece.piece] || "";
+          san = pieceLetter + (isCapture ? "x" : "") + toSquare;
+        }
+
+        // Apply the move
         boardModel.move(fromX, fromY, x, y);
         boardModel.switchTurn();
 
-        // Notify parent with move info
+        // Notify parent with SAN and new FEN
         if (onMove) {
-          const fromSquare = FILES[fromY] + RANKS[fromX];
-          const toSquare = FILES[y] + RANKS[x];
-          onMove(selected, [x, y], fromSquare + toSquare);
+          onMove(san, boardModel.toFen());
         }
 
         // Force re-render with updated board

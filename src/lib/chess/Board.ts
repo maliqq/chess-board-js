@@ -274,13 +274,21 @@ export class Board {
 
   constructor(fen?: string) {
     const defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
+    const fullFen = fen ?? defaultFEN;
 
-    this.board = parseFEN(fen ?? defaultFEN);
+    // Parse FEN parts: position activeColor castling enPassant halfmove fullmove
+    const parts = fullFen.split(" ");
+    this.board = parseFEN(parts[0]);
     this.log = new Log(this);
     this.suggests = new Suggests(this);
-    this.isBlack = false;
-    this.activeColor = "w";
-    this.castlingAvailability = "KQkq";
+
+    // Parse active color (default to white)
+    this.activeColor = parts[1] === "b" ? "b" : "w";
+    this.isBlack = this.activeColor === "b";
+
+    // Parse castling availability (default to all)
+    this.castlingAvailability = parts[2] || "KQkq";
+
     this.pgn = [];
   }
 
