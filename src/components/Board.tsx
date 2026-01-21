@@ -9,6 +9,7 @@ import type { PieceInfo } from "../lib/types";
 type BoardProps = {
   fen: string;
   swapped?: boolean;
+  onMove?: (from: [number, number], to: [number, number], san: string) => void;
 };
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -17,37 +18,79 @@ function moveKey(x: number, y: number) {
   return `${x}:${y}`;
 }
 
-export function Board({ fen, swapped = false }: BoardProps) {
-  const boardModel = useMemo(() => {
+export function Board({ fen, swapped = false, onMove }: BoardProps) {
+  const [boardModel, setBoardModel] = useState(() => {
     try {
       return new ChessBoard(fen || DEFAULT_FEN);
     } catch {
       return new ChessBoard(DEFAULT_FEN);
     }
-  }, [fen]);
+  });
 
   const [selected, setSelected] = useState<[number, number] | null>(null);
-  const [possibleMoves, setPossibleMoves] = useState<string[]>([]);
+  const [possibleMoves, setPossibleMoves] = useState<number[][]>([]);
 
-  const possibleMoveSet = useMemo(() => new Set(possibleMoves), [possibleMoves]);
+  const possibleMoveSet = useMemo(
+    () => new Set(possibleMoves.map((m) => moveKey(m[0], m[1]))),
+    [possibleMoves]
+  );
 
   const files = swapped ? FILES.split("").reverse() : FILES.split("");
   const ranks = swapped ? RANKS.split("").reverse() : RANKS.split("");
 
   const handleSquareClick = (x: number, y: number) => {
-    const piece = Piece.fromCode(boardModel.get(x, y));
-    if (piece.isEmpty) {
+    const clickedPiece = Piece.fromCode(boardModel.get(x, y));
+
+    // If we have a selected piece and clicked on a valid move target
+    if (selected) {
+      const isValidMove = possibleMoves.some((m) => m[0] === x && m[1] === y);
+
+      if (isValidMove) {
+        // Apply the move
+        const [fromX, fromY] = selected;
+        boardModel.move(fromX, fromY, x, y);
+        boardModel.switchTurn();
+
+        // Notify parent with move info
+        if (onMove) {
+          const fromSquare = FILES[fromY] + RANKS[fromX];
+          const toSquare = FILES[y] + RANKS[x];
+          onMove(selected, [x, y], fromSquare + toSquare);
+        }
+
+        // Force re-render with updated board
+        setBoardModel(boardModel);
+        setSelected(null);
+        setPossibleMoves([]);
+        return;
+      }
+    }
+
+    // If clicked on empty square without valid move, clear selection
+    if (clickedPiece.isEmpty) {
       setSelected(null);
       setPossibleMoves([]);
       return;
     }
 
+    // Only allow selecting pieces of the current turn
+    if (clickedPiece.isBlack !== boardModel.isBlack) {
+      return;
+    }
+
+    // Select the piece and show possible moves
     setSelected([x, y]);
     const moves = boardModel.possibleMoves(x, y);
-    setPossibleMoves(moves.map((move) => moveKey(move[0], move[1])));
+    setPossibleMoves(moves);
   };
 
+  // Reset board when fen prop changes
   useEffect(() => {
+    try {
+      setBoardModel(new ChessBoard(fen || DEFAULT_FEN));
+    } catch {
+      setBoardModel(new ChessBoard(DEFAULT_FEN));
+    }
     setSelected(null);
     setPossibleMoves([]);
   }, [fen]);
