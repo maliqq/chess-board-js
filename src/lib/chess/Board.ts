@@ -352,7 +352,7 @@ export class Board {
   }
 
   parsePGN(data: string) {
-    this.pgn = parsePGN(data);
+    this.pgn = parsePGN(data).parsed;
   }
 
   forward() {
