@@ -269,6 +269,8 @@ export class Board {
   suggests: Suggests;
   isBlack: boolean;
   pgn: ParsedMove[];
+  activeColor: "w" | "b";
+  castlingAvailability: string;
 
   constructor(fen?: string) {
     const defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -277,10 +279,12 @@ export class Board {
     this.log = new Log(this);
     this.suggests = new Suggests(this);
     this.isBlack = false;
+    this.activeColor = "w";
+    this.castlingAvailability = "KQkq";
     this.pgn = [];
   }
 
-  boardFEN() {
+  toFen() {
     let fen = "";
     for (let i = 0; i < BOARD_SIZE; i++) {
       let empties = 0;
@@ -295,7 +299,8 @@ export class Board {
       if (empties > 0) fen += empties.toString();
       if (i !== 7) fen += "/";
     }
-    return fen;
+    const castling = this.castlingAvailability || "-";
+    return `${fen} ${this.activeColor} ${castling} - 0 1`;
   }
 
   loadFEN(fen: string) {
@@ -477,6 +482,7 @@ export class Board {
 
   switchTurn() {
     this.isBlack = !this.isBlack;
+    this.activeColor = this.isBlack ? "b" : "w";
   }
 
   back() {
