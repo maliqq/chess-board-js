@@ -123,6 +123,58 @@
         cursor: pointer;
       }
 
+      .openings {
+        margin-top: 10px;
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      .opening-row {
+        padding: 6px 4px;
+        border-bottom: 1px dashed #ddd;
+      }
+      .opening-row:last-child {
+        border-bottom: none;
+      }
+      .opening-main {
+        display: flex;
+        gap: 8px;
+        font-size: 13px;
+        font-family: sans-serif;
+      }
+      .opening-main .eco {
+        font-weight: bold;
+        width: 36px;
+        flex-shrink: 0;
+      }
+      .opening-main .name {
+        flex: 1;
+      }
+      .opening-sub {
+        font-size: 12px;
+        color: #666;
+        margin-top: 2px;
+        font-family: sans-serif;
+      }
+      .opening-bar {
+        display: flex;
+        height: 8px;
+        margin-top: 6px;
+        background: #eee;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .opening-bar .bar.white {
+        background: #fff;
+      }
+      .opening-bar .bar.draw {
+        background: #bbb;
+      }
+      .opening-bar .bar.black {
+        background: #111;
+      }
+
       .move-list {
         display: flex;
         flex-direction: column;

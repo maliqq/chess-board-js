@@ -25,10 +25,10 @@ export function sansToPgn(sans: string[]): string {
 }
 
 export function searchOpenings(sans: string[], activeColor: "w" | "b" = "w"): OpeningData[] {
-  if (sans.length === 0) return [];
-
-  const pgn = sansToPgn(sans);
-  const matches = openings.filter((o) => o.pgn.startsWith(pgn));
+  const matches =
+    sans.length === 0
+      ? openings
+      : openings.filter((o) => o.pgn.startsWith(sansToPgn(sans)));
 
   return matches.sort((a, b) => {
     const aScore = activeColor === "b" ? a.black ?? 0 : a.white ?? 0;

@@ -3,6 +3,7 @@ import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Board as ChessBoard } from "./lib/chess";
 import { parseSAN } from "./lib/san";
+import { parsePGN } from "./lib/pgn";
 import { Board } from "./components/Board";
 import { MoveList } from "./components/MoveList";
 import { sansToPgn, searchOpenings } from "./lib/chess/Opening";
@@ -33,6 +34,14 @@ function App() {
     () => searchOpenings(visibleMoves, activeColor),
     [visibleMoves, activeColor]
   );
+
+  const openingsWithContinuations = useMemo(() => {
+    return openingMatches.map((opening) => {
+      const { sans } = parsePGN(opening.pgn);
+      const nextSan = sans[visibleMoves.length];
+      return { opening, nextSan };
+    });
+  }, [openingMatches, visibleMoves.length]);
   const isAtEnd = viewIndex === moves.length;
 
   const handleMove = (san: string, newFen: string) => {
@@ -77,14 +86,33 @@ function App() {
 
         <h4>Openings</h4>
         <div className="openings">
-          {openingMatches.length === 0 ? (
+          {openingsWithContinuations.length === 0 ? (
             <div className="empty">No matches</div>
           ) : (
-            openingMatches.slice(0, 8).map((opening) => (
-              <div key={`${opening.eco}-${opening.name}`} className="opening">
-                {opening.eco} {opening.name}
-              </div>
-            ))
+            openingsWithContinuations.map(({ opening, nextSan }) => {
+              const total = opening.white + opening.draws + opening.black;
+              const whitePct = total ? (opening.white / total) * 100 : 0;
+              const drawPct = total ? (opening.draws / total) * 100 : 0;
+              const blackPct = total ? (opening.black / total) * 100 : 0;
+              const title = `White: ${opening.white} (${whitePct.toFixed(1)}%) | Draws: ${opening.draws} (${drawPct.toFixed(1)}%) | Black: ${opening.black} (${blackPct.toFixed(1)}%)`;
+
+              return (
+                <div key={`${opening.eco}-${opening.name}`} className="opening-row">
+                  <div className="opening-main">
+                    <span className="eco">{opening.eco}</span>
+                    <span className="name">{opening.name}</span>
+                  </div>
+                  <div className="opening-sub">
+                    {nextSan ? `Next: ${nextSan}` : "Line complete"}
+                  </div>
+                  <div className="opening-bar" title={title}>
+                    <span className="bar white" style={{ width: `${whitePct}%` }}></span>
+                    <span className="bar draw" style={{ width: `${drawPct}%` }}></span>
+                    <span className="bar black" style={{ width: `${blackPct}%` }}></span>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>
