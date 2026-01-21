@@ -6,7 +6,7 @@ export function parseFENPiece(s: string): number {
   return piece << B;
 }
 
-export function FEN(data: string): number[][] {
+export function parseFEN(data: string): number[][] {
   const result: number[][] = [];
   const rows = data.split(" ")[0].split("/");
   for (let i = 0; i < rows.length; i++) {

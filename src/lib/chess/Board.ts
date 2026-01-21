@@ -9,7 +9,7 @@ import {
   QUEEN,
   ROOK,
 } from "../constants";
-import { FEN } from "../fen";
+import { parseFEN } from "../fen";
 import { parsePGN } from "../pgn";
 import { parseMove } from "../san";
 import type { MoveCoord, MoveHint, ParsedMove, PieceInfo } from "../types";
@@ -275,7 +275,7 @@ export class Board {
   constructor(fen?: string) {
     const defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 
-    this.board = FEN(fen ?? defaultFEN);
+    this.board = parseFEN(fen ?? defaultFEN);
     this.log = new Log(this);
     this.suggests = new Suggests(this);
     this.isBlack = false;
@@ -304,7 +304,7 @@ export class Board {
   }
 
   loadFEN(fen: string) {
-    this.board = FEN(fen);
+    this.board = parseFEN(fen);
   }
 
   get(x: number, y: number) {
