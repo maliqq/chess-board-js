@@ -1,3 +1,5 @@
+import React from 'react';
+
 import type { Opening } from "../lib/chess/Opening";
 
 type OpeningWithContinuation = {

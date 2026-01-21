@@ -1,5 +1,6 @@
 import "./App.css";
-import { useMemo, useState } from "react";
+
+import React, { useMemo, useState } from "react";
 import { Copy, RotateCcw, FlipVertical2 } from "lucide-react";
 import { Board as ChessBoard } from "./lib/chess";
 import { parseSAN } from "./lib/san";
