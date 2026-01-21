@@ -13,7 +13,7 @@ type OpeningRow = {
 };
 
 type OpeningOutput = OpeningRow & {
-  parsed_pgn: ParsedMove[];
+  moves: ParsedMove[];
   white: number;
   draws: number;
   black: number;
@@ -162,7 +162,7 @@ async function run() {
         eco: item.row.eco,
         name: item.row.name,
         pgn: item.row.pgn,
-        parsed_pgn: item.parsed,
+        moves: item.parsed,
         white,
         draws,
         black,
@@ -181,7 +181,7 @@ async function run() {
     `  eco: string;\n` +
     `  name: string;\n` +
     `  pgn: string;\n` +
-    `  parsed_pgn: ParsedMove[];\n` +
+    `  moves: ParsedMove[];\n` +
     `  white: number;\n` +
     `  draws: number;\n` +
     `  black: number;\n` +
