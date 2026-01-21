@@ -23,6 +23,13 @@ type MoveEntry = {
   piece: number;
   captured: number;
   san: string;
+  rookMove?: {
+    fromX: number;
+    fromY: number;
+    toX: number;
+    toY: number;
+    piece: number;
+  };
 };
 
 class Log {
@@ -52,7 +59,14 @@ class Log {
     return this.moves.map((m) => m.san);
   }
 
-  track(fromX: number, fromY: number, x: number, y: number, san: string) {
+  track(
+    fromX: number,
+    fromY: number,
+    x: number,
+    y: number,
+    san: string,
+    rookMove?: { fromX: number; fromY: number; toX: number; toY: number },
+  ) {
     // If we're not at the end, truncate future moves
     if (this.index < this.moves.length) {
       this.moves = this.moves.slice(0, this.index);
@@ -67,6 +81,12 @@ class Log {
       captured: this.b.get(x, y),
       san,
     };
+    if (rookMove) {
+      entry.rookMove = {
+        ...rookMove,
+        piece: this.b.get(rookMove.fromX, rookMove.fromY),
+      };
+    }
     this.moves.push(entry);
     this.index++;
   }
@@ -84,6 +104,10 @@ class Log {
     } else {
       this.b.clear(entry.x, entry.y);
     }
+    if (entry.rookMove) {
+      this.b.put(entry.rookMove.fromX, entry.rookMove.fromY, entry.rookMove.piece);
+      this.b.clear(entry.rookMove.toX, entry.rookMove.toY);
+    }
     this.b.switchTurn();
 
     return true;
@@ -98,6 +122,10 @@ class Log {
     // Redo the move
     this.b.clear(entry.fromX, entry.fromY);
     this.b.put(entry.x, entry.y, entry.piece);
+    if (entry.rookMove) {
+      this.b.clear(entry.rookMove.fromX, entry.rookMove.fromY);
+      this.b.put(entry.rookMove.toX, entry.rookMove.toY, entry.rookMove.piece);
+    }
     this.b.switchTurn();
 
     return true;
@@ -322,11 +350,51 @@ class Suggests {
           possibleMoves.push(move);
         }
       }
+      this.addCastleMoves(possibleMoves, x, y, isBlack);
     } else if (p.piece === BISHOP) {
       possibleMoves.push(...this.filterShadows(x, y, isBlack, diagonalMove(), true));
     }
 
     return possibleMoves;
+  }
+
+  private addCastleMoves(possibleMoves: any[], x: number, y: number, isBlack: boolean) {
+    if (isBlack) {
+      if (x === 0 && y === 4 && this.b.castlingAvailability.includes("k")) {
+        if (this.b.isEmpty(0, 5) && this.b.isEmpty(0, 6)) {
+          const rook = Piece.fromCode(this.b.get(0, 7));
+          if (!rook.isEmpty && rook.piece === ROOK) {
+            possibleMoves.push([0, 6]);
+          }
+        }
+      }
+      if (x === 0 && y === 4 && this.b.castlingAvailability.includes("q")) {
+        if (this.b.isEmpty(0, 3) && this.b.isEmpty(0, 2) && this.b.isEmpty(0, 1)) {
+          const rook = Piece.fromCode(this.b.get(0, 0));
+          if (!rook.isEmpty && rook.piece === ROOK) {
+            possibleMoves.push([0, 2]);
+          }
+        }
+      }
+      return;
+    }
+
+    if (x === 7 && y === 4 && this.b.castlingAvailability.includes("K")) {
+      if (this.b.isEmpty(7, 5) && this.b.isEmpty(7, 6)) {
+        const rook = Piece.fromCode(this.b.get(7, 7));
+        if (!rook.isEmpty && rook.piece === ROOK) {
+          possibleMoves.push([7, 6]);
+        }
+      }
+    }
+    if (x === 7 && y === 4 && this.b.castlingAvailability.includes("Q")) {
+      if (this.b.isEmpty(7, 3) && this.b.isEmpty(7, 2) && this.b.isEmpty(7, 1)) {
+        const rook = Piece.fromCode(this.b.get(7, 0));
+        if (!rook.isEmpty && rook.piece === ROOK) {
+          possibleMoves.push([7, 2]);
+        }
+      }
+    }
   }
 }
 
@@ -379,7 +447,11 @@ export class Board {
   }
 
   loadFEN(fen: string) {
-    this.board = parseFEN(fen);
+    const parts = fen.split(" ");
+    this.board = parseFEN(parts[0]);
+    this.activeColor = parts[1] === "b" ? "b" : "w";
+    this.isBlack = this.activeColor === "b";
+    this.castlingAvailability = parts[2] || "KQkq";
   }
 
   get(x: number, y: number) {
@@ -400,9 +472,32 @@ export class Board {
 
   move(x: number, y: number, x2: number, y2: number, san = "") {
     const piece = this.get(x, y);
-    this.log.track(x, y, x2, y2, san);
+    const captured = this.get(x2, y2);
+    const moved = Piece.fromCode(piece);
+    let rookMove: { fromX: number; fromY: number; toX: number; toY: number } | undefined;
+
+    if (!moved.isEmpty && moved.piece === KING && Math.abs(y2 - y) === 2) {
+      if (!san) {
+        san = y2 > y ? "O-O" : "O-O-O";
+      }
+      if (y2 > y) {
+        rookMove = { fromX: x2, fromY: 7, toX: x2, toY: 5 };
+      } else {
+        rookMove = { fromX: x2, fromY: 0, toX: x2, toY: 3 };
+      }
+    }
+
+    this.log.track(x, y, x2, y2, san, rookMove);
     this.clear(x, y);
     this.put(x2, y2, piece);
+
+    if (rookMove) {
+      const rookPiece = this.get(rookMove.fromX, rookMove.fromY);
+      this.clear(rookMove.fromX, rookMove.fromY);
+      this.put(rookMove.toX, rookMove.toY, rookPiece);
+    }
+
+    this.updateCastlingAvailability(moved, x, y, captured, x2, y2);
   }
 
   outOfBoard(x: number, y: number) {
@@ -507,16 +602,10 @@ export class Board {
       }
       if (san.castle === "king") {
         const kingTo = parseMove("g" + rank) as MoveCoord;
-        this.move(king.x, king.y, kingTo.x, kingTo.y);
-        const rook = parseMove("h" + rank) as MoveCoord;
-        const rookTo = parseMove("f" + rank) as MoveCoord;
-        this.move(rook.x, rook.y, rookTo.x, rookTo.y);
+        this.move(king.x, king.y, kingTo.x, kingTo.y, "O-O");
       } else if (san.castle === "queen") {
         const kingTo = parseMove("c" + rank) as MoveCoord;
-        this.move(king.x, king.y, kingTo.x, kingTo.y);
-        const rook = parseMove("a" + rank) as MoveCoord;
-        const rookTo = parseMove("d" + rank) as MoveCoord;
-        this.move(rook.x, rook.y, rookTo.x, rookTo.y);
+        this.move(king.x, king.y, kingTo.x, kingTo.y, "O-O-O");
       }
     } else if (san.piece === PAWN) {
       const moveTo = san.moveTo as MoveCoord;
@@ -558,6 +647,36 @@ export class Board {
   switchTurn() {
     this.isBlack = !this.isBlack;
     this.activeColor = this.isBlack ? "b" : "w";
+  }
+
+  private updateCastlingAvailability(
+    moved: PieceInfo,
+    fromX: number,
+    fromY: number,
+    captured: number,
+    toX: number,
+    toY: number,
+  ) {
+    if (!moved.isEmpty && moved.piece === KING) {
+      this.castlingAvailability = this.isBlack
+        ? this.castlingAvailability.replace(/[kq]/g, "")
+        : this.castlingAvailability.replace(/[KQ]/g, "");
+    }
+
+    if (!moved.isEmpty && moved.piece === ROOK) {
+      if (fromX === 7 && fromY === 0) this.castlingAvailability = this.castlingAvailability.replace("Q", "");
+      if (fromX === 7 && fromY === 7) this.castlingAvailability = this.castlingAvailability.replace("K", "");
+      if (fromX === 0 && fromY === 0) this.castlingAvailability = this.castlingAvailability.replace("q", "");
+      if (fromX === 0 && fromY === 7) this.castlingAvailability = this.castlingAvailability.replace("k", "");
+    }
+
+    const capturedPiece = Piece.fromCode(captured);
+    if (!capturedPiece.isEmpty && capturedPiece.piece === ROOK) {
+      if (toX === 7 && toY === 0) this.castlingAvailability = this.castlingAvailability.replace("Q", "");
+      if (toX === 7 && toY === 7) this.castlingAvailability = this.castlingAvailability.replace("K", "");
+      if (toX === 0 && toY === 0) this.castlingAvailability = this.castlingAvailability.replace("q", "");
+      if (toX === 0 && toY === 7) this.castlingAvailability = this.castlingAvailability.replace("k", "");
+    }
   }
 
   // Navigation methods

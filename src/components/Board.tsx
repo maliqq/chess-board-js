@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FILES, PAWN, PIECE_LETTERS, RANKS } from "../lib/constants";
+import { FILES, PAWN, KING, PIECE_LETTERS, RANKS } from "../lib/constants";
 import { Board as ChessBoard, Piece } from "../lib/chess";
 import { FileLetter } from "./FileLetter";
 import { RankNumber } from "./RankNumber";
@@ -53,7 +53,9 @@ export function Board({ fen, swapped = false, onMove }: BoardProps) {
         // Build SAN notation
         const toSquare = FILES[y] + RANKS[x];
         let san = "";
-        if (movedPiece.piece === PAWN) {
+        if (movedPiece.piece === KING && Math.abs(y - fromY) === 2) {
+          san = y > fromY ? "O-O" : "O-O-O";
+        } else if (movedPiece.piece === PAWN) {
           san = isCapture ? FILES[fromY] + "x" + toSquare : toSquare;
         } else {
           const pieceLetter = PIECE_LETTERS[movedPiece.piece] || "";
