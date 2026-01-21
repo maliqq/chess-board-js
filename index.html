@@ -4,6 +4,7 @@
     <title>Chess Board</title>
     <meta charset='utf-8' />
     <style type="text/css">
+      /* Chess board specific styles */
       .board {
         display: table;
         border-collapse: collapse;
@@ -13,7 +14,6 @@
         display: table-row;
         clear: both;
       }
-
       .row > .rank {
         font-size: 12px;
         font-family: sans-serif;
@@ -22,7 +22,6 @@
         vertical-align: middle;
         width: 12px;
       }
-
       .files {
         display: table-row;
         text-align: center;
@@ -34,7 +33,6 @@
       .files > .file {
         font-size: 12px;
         font-family: sans-serif;
-        height: 12px;
         display: table-cell;
         width: 50px;
         height: 1em;
@@ -42,39 +40,34 @@
       .file > span {
         margin: 0px auto;
       }
-
       .cell {
         display: table-cell;
         width: 50px;
         height: 50px;
         border: 1px solid black;
+        cursor: pointer;
       }
       .cell.odd {
-        background-color: white;
+        background-color: #f0d9b5;
       }
       .cell.even {
-        background-color: darkgray;
-      }
-      .cell {
-        cursor: move;
+        background-color: #b58863;
       }
       .cell.selected {
-        background-color: navy;
-        color: white;
-        opacity: 0.6;
+        background-color: #829769;
+        opacity: 0.9;
       }
       .cell.suggested {
-        background-color: #cccc66;
+        background-color: #cdd26a;
       }
       .cell.suggested.capture {
-        background-color: #cc9933;
+        background-color: #e8a838;
       }
 
       @font-face {
         font-family: chessmaster;
         src: url(/chessmaster.ttf);
       }
-
       .piece {
         padding-left: 7px;
         width: 100%;
@@ -83,166 +76,13 @@
         vertical-align: middle;
         line-height: 50px;
         font-family: chessmaster;
-        cursor: hand;
+        cursor: pointer;
       }
       .piece.black {
-        text-shadow: 1px 1px 5px gray;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
       }
       .piece.white {
-        text-shadow: 1px 1px 5px gray;
-        /*text-shadow: 2px 0 0 #000, -2px 0 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 1px 1px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;*/
-      }
-
-
-      .app {
-        display: flex;
-        gap: 20px;
-        padding: 20px;
-      }
-
-      .side {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-      }
-      .side h4 {
-        margin: 10px 0 5px 0;
-      }
-      .side textarea {
-        width: 300px;
-        height: 60px;
-        font-family: monospace;
-        font-size: 12px;
-      }
-      .side .buttons {
-        display: flex;
-        gap: 8px;
-      }
-      .side button {
-        padding: 6px 12px;
-        cursor: pointer;
-      }
-
-      .openings {
-        margin-top: 10px;
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ddd;
-        padding: 8px;
-      }
-      .opening-row {
-        padding: 6px 4px;
-        border-bottom: 1px dashed #ddd;
-      }
-      .opening-row:last-child {
-        border-bottom: none;
-      }
-      .opening-main {
-        display: flex;
-        gap: 8px;
-        font-size: 13px;
-        font-family: sans-serif;
-      }
-      .opening-main .eco {
-        font-weight: bold;
-        width: 36px;
-        flex-shrink: 0;
-      }
-      .opening-main .name {
-        flex: 1;
-      }
-      .opening-sub {
-        font-size: 12px;
-        color: #666;
-        margin-top: 2px;
-        font-family: sans-serif;
-      }
-      .opening-bar {
-        display: flex;
-        height: 8px;
-        margin-top: 6px;
-        background: #eee;
-        border-radius: 4px;
-        overflow: hidden;
-      }
-      .opening-bar .bar.white {
-        background: #fff;
-      }
-      .opening-bar .bar.draw {
-        background: #bbb;
-      }
-      .opening-bar .bar.black {
-        background: #111;
-      }
-
-      .move-list {
-        display: flex;
-        flex-direction: column;
-        width: 180px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        background: #fafafa;
-        font-family: sans-serif;
-        font-size: 14px;
-      }
-      .move-list .moves {
-        flex: 1;
-        overflow-y: auto;
-        max-height: 400px;
-        padding: 8px;
-      }
-      .move-list .empty {
-        color: #999;
-        font-style: italic;
-        padding: 10px;
-        text-align: center;
-      }
-      .move-list .move-pair {
-        display: flex;
-        gap: 6px;
-        padding: 3px 0;
-      }
-      .move-list .move-num {
-        color: #666;
-        min-width: 24px;
-      }
-      .move-list .move {
-        cursor: pointer;
-        padding: 2px 6px;
-        border-radius: 3px;
-        min-width: 45px;
-      }
-      .move-list .move:hover {
-        background: #e0e0e0;
-      }
-      .move-list .move.active {
-        background: #4a90d9;
-        color: white;
-      }
-      .move-list .nav-controls {
-        display: flex;
-        justify-content: center;
-        gap: 4px;
-        padding: 8px;
-        border-top: 1px solid #ddd;
-        background: #f0f0f0;
-      }
-      .move-list .nav-controls button {
-        padding: 6px 10px;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        background: white;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .move-list .nav-controls button:hover:not(:disabled) {
-        background: #e8e8e8;
-      }
-      .move-list .nav-controls button:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
       }
     </style>
   </head>

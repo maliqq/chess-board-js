@@ -1,11 +1,13 @@
 import "./index.css";
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { Copy, RotateCcw, FlipVertical2 } from "lucide-react";
 import { Board as ChessBoard } from "./lib/chess";
 import { parseSAN } from "./lib/san";
 import { parsePGN } from "./lib/pgn";
 import { Board } from "./components/Board";
 import { MoveList } from "./components/MoveList";
+import { OpeningsBar } from "./components/OpeningsBar";
 import { sansToPgn, searchOpenings } from "./lib/chess/Opening";
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -25,6 +27,7 @@ function App() {
   const [moves, setMoves] = useState<string[]>([]);
   const [viewIndex, setViewIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const fen = useMemo(() => computeFen(moves, viewIndex), [moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
@@ -62,60 +65,75 @@ function App() {
     setViewIndex(0);
   };
 
+  const handleCopyFen = async () => {
+    await navigator.clipboard.writeText(fen);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
-    <div className="app">
+    <div className="flex gap-5 p-5 min-h-screen bg-gray-100">
+      {/* LEFT: Moves List */}
       <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
-      <Board fen={fen} swapped={flipped} onMove={handleMove} />
+      {/* CENTER: Board + Controls + PGN/FEN */}
+      <div className="flex flex-col gap-4">
+        <Board fen={fen} swapped={flipped} onMove={handleMove} />
 
-      <div className="side">
-        <div className="buttons">
-          <button type="button" onClick={handleReset}>
+        {/* Controls */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={handleReset}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50"
+          >
+            <RotateCcw size={14} />
             Reset
           </button>
-          <button type="button" onClick={() => setFlipped((f) => !f)}>
-            Flip Board
+          <button
+            type="button"
+            onClick={() => setFlipped((f) => !f)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-gray-300 rounded bg-white hover:bg-gray-50"
+          >
+            <FlipVertical2 size={14} />
+            Flip
           </button>
         </div>
 
-        <h4>PGN</h4>
-        <textarea id="pgn" value={pgn} readOnly></textarea>
+        {/* PGN */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">PGN</label>
+          <textarea
+            value={pgn}
+            readOnly
+            className="w-full h-16 px-2 py-1.5 text-xs font-mono border border-gray-300 rounded bg-white resize-none"
+          />
+        </div>
 
-        <h4>FEN</h4>
-        <textarea id="fen" value={fen} readOnly></textarea>
-
-        <h4>Openings</h4>
-        <div className="openings">
-          {openingsWithContinuations.length === 0 ? (
-            <div className="empty">No matches</div>
-          ) : (
-            openingsWithContinuations.map(({ opening, nextSan }) => {
-              const total = opening.white + opening.draws + opening.black;
-              const whitePct = total ? (opening.white / total) * 100 : 0;
-              const drawPct = total ? (opening.draws / total) * 100 : 0;
-              const blackPct = total ? (opening.black / total) * 100 : 0;
-              const title = `White: ${opening.white} (${whitePct.toFixed(1)}%) | Draws: ${opening.draws} (${drawPct.toFixed(1)}%) | Black: ${opening.black} (${blackPct.toFixed(1)}%)`;
-
-              return (
-                <div key={`${opening.eco}-${opening.name}`} className="opening-row">
-                  <div className="opening-main">
-                    <span className="eco">{opening.eco}</span>
-                    <span className="name">{opening.name}</span>
-                  </div>
-                  <div className="opening-sub">
-                    {nextSan ? `Next: ${nextSan}` : "Line complete"}
-                  </div>
-                  <div className="opening-bar" title={title}>
-                    <span className="bar white" style={{ width: `${whitePct}%` }}></span>
-                    <span className="bar draw" style={{ width: `${drawPct}%` }}></span>
-                    <span className="bar black" style={{ width: `${blackPct}%` }}></span>
-                  </div>
-                </div>
-              );
-            })
-          )}
+        {/* FEN */}
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">FEN</label>
+          <div className="flex gap-1">
+            <input
+              type="text"
+              value={fen}
+              readOnly
+              className="flex-1 px-2 py-1.5 text-xs font-mono border border-gray-300 rounded bg-white"
+            />
+            <button
+              type="button"
+              onClick={handleCopyFen}
+              className="px-2 py-1.5 border border-gray-300 rounded bg-white hover:bg-gray-50"
+              title="Copy FEN"
+            >
+              <Copy size={14} className={copied ? "text-green-500" : "text-gray-600"} />
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* RIGHT: Openings Bar */}
+      <OpeningsBar openings={openingsWithContinuations} />
     </div>
   );
 }
