@@ -4,6 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Board } from "../src/lib/chess";
 import { parsePGN } from "../src/lib/pgn";
+import { parseSAN } from "../src/lib/san";
 import type { ParsedMove } from "../src/lib/types";
 
 type OpeningRow = {
@@ -33,6 +34,13 @@ type LichessResponse = {
   moves: LichessMove[];
 };
 
+// Trie node representing a position after a sequence of moves
+type TrieNode = {
+  children: Map<string, TrieNode>;
+  // Openings that end at this exact position
+  openings: Array<{ row: OpeningRow; parsed: ParsedMove[] }>;
+};
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.join(__dirname, "..");
@@ -60,24 +68,16 @@ function parseTsv(content: string) {
   return rows;
 }
 
-function buildFenFromMoves(moves: ParsedMove[]): string {
-  const board = new Board();
-  for (const move of moves) {
-    board.applySAN(move);
-  }
-  return board.toFen();
-}
-
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function progress(current: number, total: number) {
+function progress(current: number, total: number, populated: number) {
   const width = 24;
   const ratio = total === 0 ? 1 : current / total;
   const filled = Math.round(ratio * width);
   const bar = `${"#".repeat(filled)}${"-".repeat(Math.max(0, width - filled))}`;
-  process.stdout.write(`\r[${bar}] ${current}/${total}`);
+  process.stdout.write(`\r[${bar}] ${current}/${total} reqs, ${populated} openings`);
   if (current === total) process.stdout.write("\n");
 }
 
@@ -93,6 +93,134 @@ async function fetchLichess(fen: string): Promise<LichessResponse> {
   return (await res.json()) as LichessResponse;
 }
 
+// Build a trie from all openings
+function buildTrie(rows: OpeningRow[]): TrieNode {
+  const root: TrieNode = { children: new Map(), openings: [] };
+
+  for (const row of rows) {
+    const { parsed, sans } = parsePGN(row.pgn);
+    let node = root;
+
+    // Traverse/create path for each move
+    for (const san of sans) {
+      if (!node.children.has(san)) {
+        node.children.set(san, { children: new Map(), openings: [] });
+      }
+      node = node.children.get(san)!;
+    }
+
+    // Mark this node as an opening endpoint
+    node.openings.push({ row, parsed });
+  }
+
+  return root;
+}
+
+// Count total requests needed (nodes with children that have openings)
+function countRequests(node: TrieNode): number {
+  let count = 0;
+
+  // We need a request at this node if any child has openings or descendants with openings
+  const hasOpeningsInSubtree = (n: TrieNode): boolean => {
+    if (n.openings.length > 0) return true;
+    for (const child of n.children.values()) {
+      if (hasOpeningsInSubtree(child)) return true;
+    }
+    return false;
+  };
+
+  // Check if any child needs data
+  for (const child of node.children.values()) {
+    if (hasOpeningsInSubtree(child)) {
+      count++; // We need a request at this node
+      break;
+    }
+  }
+
+  // Recurse into children
+  for (const child of node.children.values()) {
+    count += countRequests(child);
+  }
+
+  return count;
+}
+
+// Walk the trie and fetch data from Lichess
+async function walkTree(root: TrieNode): Promise<OpeningOutput[]> {
+  const output: OpeningOutput[] = [];
+  const totalRequests = countRequests(root);
+  let requestCount = 0;
+
+  // BFS queue: [node, moves path to reach this node]
+  const queue: Array<{ node: TrieNode; movePath: string[] }> = [];
+  queue.push({ node: root, movePath: [] });
+
+  while (queue.length > 0) {
+    const { node, movePath } = queue.shift()!;
+
+    // Check if we need to make a request (any child has openings)
+    const childrenWithOpenings: Array<[string, TrieNode]> = [];
+    const childrenToTraverse: Array<[string, TrieNode]> = [];
+
+    for (const [san, child] of node.children) {
+      if (child.openings.length > 0) {
+        childrenWithOpenings.push([san, child]);
+      }
+      if (child.children.size > 0) {
+        childrenToTraverse.push([san, child]);
+      }
+    }
+
+    // Make request if there are children with openings
+    if (childrenWithOpenings.length > 0) {
+      // Build board state by replaying moves
+      const board = new Board();
+      for (const san of movePath) {
+        board.applySAN(parseSAN(san));
+      }
+      const fen = board.toFen();
+
+      requestCount++;
+      progress(requestCount, totalRequests, output.length);
+
+      const response = await fetchLichess(fen);
+
+      // Populate all child openings from this single response
+      for (const [san, child] of childrenWithOpenings) {
+        const match = response.moves.find((m) => m.san === san);
+        if (!match) {
+          // Log warning but continue - some rare moves might not be in masters DB
+          console.warn(`\nSAN "${san}" not found for path: ${movePath.join(" ")} ${san}`);
+          continue;
+        }
+
+        for (const { row, parsed } of child.openings) {
+          output.push({
+            eco: row.eco,
+            name: row.name,
+            pgn: row.pgn,
+            moves: parsed,
+            white: match.white,
+            draws: match.draws,
+            black: match.black,
+          });
+        }
+      }
+
+      if (requestCount < totalRequests) {
+        await sleep(1000);
+      }
+    }
+
+    // Add children that need traversal to queue
+    for (const [san, child] of childrenToTraverse) {
+      queue.push({ node: child, movePath: [...movePath, san] });
+    }
+  }
+
+  return output;
+}
+
 async function run() {
   const tsvFiles = fs
     .readdirSync(datDir)
@@ -105,74 +233,15 @@ async function run() {
     rows.push(...parseTsv(content));
   }
 
-  const grouped = new Map<
-    string,
-    Array<{
-      row: OpeningRow;
-      parsed: ParsedMove[];
-      lastSan: string | null;
-    }>
-  >();
+  console.log(`Loaded ${rows.length} openings from TSV files`);
 
-  for (const row of rows) {
-    const { parsed, sans } = parsePGN(row.pgn);
-    if (sans.length === 0) {
-      const fen = buildFenFromMoves([]);
-      const group = grouped.get(fen) || [];
-      group.push({ row, parsed, lastSan: null });
-      grouped.set(fen, group);
-      continue;
-    }
-    const prefixParsed = parsed.slice(0, -1);
-    const fen = buildFenFromMoves(prefixParsed);
-    const lastSan = sans[sans.length - 1];
-    const group = grouped.get(fen) || [];
-    group.push({ row, parsed, lastSan });
-    grouped.set(fen, group);
-  }
+  // Build trie from openings
+  const root = buildTrie(rows);
+  const totalRequests = countRequests(root);
+  console.log(`Tree built. Need ${totalRequests} requests to Lichess`);
 
-  const entries = Array.from(grouped.entries());
-  const output: OpeningOutput[] = [];
-  let index = 0;
-  for (const [fen, items] of entries) {
-    index += 1;
-    progress(index, entries.length);
-    const response = await fetchLichess(fen);
-
-    for (const item of items) {
-      let white = 0;
-      let draws = 0;
-      let black = 0;
-
-      if (item.lastSan == null) {
-        white = response.white;
-        draws = response.draws;
-        black = response.black;
-      } else {
-        const match = response.moves.find((move) => move.san === item.lastSan);
-        if (!match) {
-          throw new Error(`SAN not found for ${item.row.eco} ${item.row.name}: ${item.lastSan}`);
-        }
-        white = match.white;
-        draws = match.draws;
-        black = match.black;
-      }
-
-      output.push({
-        eco: item.row.eco,
-        name: item.row.name,
-        pgn: item.row.pgn,
-        moves: item.parsed,
-        white,
-        draws,
-        black,
-      });
-    }
-
-    if (index < entries.length) {
-      await sleep(1000);
-    }
-  }
+  // Walk tree and fetch data
+  const output = await walkTree(root);
 
   const file =
     `// Generated by bin/gen.ts. Do not edit by hand.\n` +
