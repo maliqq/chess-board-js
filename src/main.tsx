@@ -1,10 +1,11 @@
+import "./index.css";
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Board as ChessBoard } from "./lib/chess";
 import { parseSAN } from "./lib/san";
 import { Board } from "./components/Board";
 import { MoveList } from "./components/MoveList";
-import { sansToPgn } from "./lib/openings-search";
+import { sansToPgn, searchOpenings } from "./lib/chess/Opening";
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 
@@ -26,6 +27,12 @@ function App() {
 
   const fen = useMemo(() => computeFen(moves, viewIndex), [moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
+  const activeColor = fen.split(" ")[1] === "b" ? "b" : "w";
+  const visibleMoves = useMemo(() => moves.slice(0, viewIndex), [moves, viewIndex]);
+  const openingMatches = useMemo(
+    () => searchOpenings(visibleMoves, activeColor),
+    [visibleMoves, activeColor]
+  );
   const isAtEnd = viewIndex === moves.length;
 
   const handleMove = (san: string, newFen: string) => {
@@ -67,6 +74,19 @@ function App() {
 
         <h4>FEN</h4>
         <textarea id="fen" value={fen} readOnly></textarea>
+
+        <h4>Openings</h4>
+        <div className="openings">
+          {openingMatches.length === 0 ? (
+            <div className="empty">No matches</div>
+          ) : (
+            openingMatches.slice(0, 8).map((opening) => (
+              <div key={`${opening.eco}-${opening.name}`} className="opening">
+                {opening.eco} {opening.name}
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
