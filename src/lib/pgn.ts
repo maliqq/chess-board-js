@@ -1,7 +1,7 @@
 import type { ParsedMove } from "./types";
 import { parseSAN } from "./san";
 
-export function PGN(data: string): ParsedMove[] {
+export function parsePGN(data: string): ParsedMove[] {
   const moves: ParsedMove[] = [];
   const start = data.indexOf("1.");
   if (start === -1) return moves;

@@ -10,7 +10,7 @@ import {
   ROOK,
 } from "../constants";
 import { FEN } from "../fen";
-import { PGN } from "../pgn";
+import { parsePGN } from "../pgn";
 import { parseMove } from "../san";
 import type { MoveCoord, MoveHint, ParsedMove, PieceInfo } from "../types";
 import { Piece } from "./Piece";
@@ -347,7 +347,7 @@ export class Board {
   }
 
   parsePGN(data: string) {
-    this.pgn = PGN(data);
+    this.pgn = parsePGN(data);
   }
 
   forward() {
