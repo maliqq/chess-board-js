@@ -13,23 +13,33 @@ import { sansToPgn, searchOpenings } from "./lib/chess/Opening";
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 const TOP_OPENINGS = 20;
 
-function computeFen(moves: string[], upToIndex: number): string {
-  if (upToIndex === 0) return DEFAULT_FEN;
+function computeFen(baseFen: string, moves: string[], upToIndex: number): string {
+  if (upToIndex === 0) return baseFen;
 
-  const board = new ChessBoard(DEFAULT_FEN);
+  const board = new ChessBoard(baseFen);
   for (let i = 0; i < upToIndex && i < moves.length; i++) {
     board.applySAN(parseSAN(moves[i]));
   }
   return board.toFen();
 }
 
+function isValidFen(fen: string): boolean {
+  try {
+    new ChessBoard(fen);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function App() {
+  const [baseFen, setBaseFen] = useState(DEFAULT_FEN);
   const [moves, setMoves] = useState<string[]>([]);
   const [viewIndex, setViewIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [copiedField, setCopiedField] = useState<"fen" | "pgn" | null>(null);
 
-  const fen = useMemo(() => computeFen(moves, viewIndex), [moves, viewIndex]);
+  const fen = useMemo(() => computeFen(baseFen, moves, viewIndex), [baseFen, moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
   const activeColor = fen.split(" ")[1] === "b" ? "b" : "w";
   const visibleMoves = useMemo(() => moves.slice(0, viewIndex), [moves, viewIndex]);
@@ -57,14 +67,23 @@ export function App() {
   };
 
   const handleReset = () => {
+    setBaseFen(DEFAULT_FEN);
     setMoves([]);
     setViewIndex(0);
   };
 
-  const handleCopyFen = async () => {
-    await navigator.clipboard.writeText(fen);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 1500);
+  const handleFenChange = (newFen: string) => {
+    if (isValidFen(newFen)) {
+      setBaseFen(newFen);
+      setMoves([]);
+      setViewIndex(0);
+    }
+  };
+
+  const handleCopy = async (text: string, field: "fen" | "pgn") => {
+    await navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1500);
   };
 
   return (
@@ -87,15 +106,29 @@ export function App() {
 
         <div className="field">
           <label>PGN</label>
-          <textarea value={pgn} readOnly />
+          <div className="field-row">
+            <textarea value={pgn} readOnly />
+            <button type="button" onClick={() => handleCopy(pgn, "pgn")} className="copy-btn" title="Copy PGN">
+              <Copy size={14} className={copiedField === "pgn" ? "copied" : ""} />
+            </button>
+          </div>
         </div>
 
         <div className="field">
           <label>FEN</label>
-          <div className="fen-row">
-            <input type="text" value={fen} readOnly />
-            <button type="button" onClick={handleCopyFen} className="copy-btn" title="Copy FEN">
-              <Copy size={14} className={copied ? "copied" : ""} />
+          <div className="field-row">
+            <input
+              type="text"
+              value={fen}
+              onChange={(e) => handleFenChange(e.target.value)}
+              onPaste={(e) => {
+                e.preventDefault();
+                const pasted = e.clipboardData.getData("text");
+                handleFenChange(pasted.trim());
+              }}
+            />
+            <button type="button" onClick={() => handleCopy(fen, "fen")} className="copy-btn" title="Copy FEN">
+              <Copy size={14} className={copiedField === "fen" ? "copied" : ""} />
             </button>
           </div>
         </div>

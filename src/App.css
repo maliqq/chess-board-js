@@ -1,6 +1,7 @@
 /* App Layout */
 .app {
   display: flex;
+  align-items: flex-start;
   gap: 20px;
   padding: 20px;
   min-height: 100vh;
@@ -65,9 +66,12 @@
   background: white;
 }
 
-.fen-row {
+.field-row {
   display: flex;
   gap: 4px;
+}
+.field-row textarea {
+  flex: 1;
 }
 .copy-btn {
   padding: 6px 8px;
