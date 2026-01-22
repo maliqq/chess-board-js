@@ -35,8 +35,8 @@ function isValidFen(fen: string): boolean {
 const moveSound = new Audio("/sounds/Move.ogg");
 
 const PIECE_FONTS = [
-  { value: "Chess-Master", label: "Chess Master", offsetX: "14px", offsetY: "2px" },
   { value: "Open-Chess-Font", label: "Open Chess Font", offsetX: "7px", offsetY: "-1px" },
+  { value: "Chess-Master", label: "Chess Master", offsetX: "14px", offsetY: "2px" },
   { value: "Chessvetica", label: "Chessvetica", offsetX: "16px", offsetY: "4px" },
 ];
 
@@ -56,7 +56,7 @@ function safeGetStorage(key: string): string | null {
 }
 
 function resolvePieceFont(value: string | null): string {
-  const fallback = "Chess-Master";
+  const fallback = "Open-Chess-Font";
   if (!value) return fallback;
   return PIECE_FONTS.some((font) => font.value === value) ? value : fallback;
 }
