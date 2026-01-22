@@ -178,91 +178,95 @@ export function App() {
   };
 
   return (
-    <div className="app" style={{
-      "--piece-font": `'${pieceFont}'`,
-      "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX ?? "0px",
-      "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY ?? "0px",
-      "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light ?? "#F0D9B5",
-      "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark ?? "#B58864",
-    } as React.CSSProperties}>
-      <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
+    <>
+      <main className="app" style={{
+        "--piece-font": `'${pieceFont}'`,
+        "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX ?? "0px",
+        "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY ?? "0px",
+        "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light ?? "#F0D9B5",
+        "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark ?? "#B58864",
+      } as React.CSSProperties}>
+        <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
-      <div className="center-panel">
-        <Board fen={fen} swapped={flipped} onMove={handleMove} previewMove={previewMove} pieceFont={pieceFont} />
+        <div className="center-panel">
+          <Board fen={fen} swapped={flipped} onMove={handleMove} previewMove={previewMove} pieceFont={pieceFont} />
 
-        <div className="controls">
-          <button type="button" onClick={handleReset} className="btn">
-            <RotateCcw size={14} />
-            Reset
-          </button>
-          <button type="button" onClick={() => setFlipped((f) => !f)} className="btn">
-            <FlipVertical2 size={14} />
-            Flip
-          </button>
-          <select
-            value={pieceFont}
-            onChange={(e) => setPieceFont(e.target.value)}
-            className="font-select"
-          >
-            {PIECE_FONTS.map((font) => (
-              <option key={font.value} value={font.value}>
-                {font.label}
-              </option>
-            ))}
-          </select>
-          <div className="scheme-picker">
-            {COLOR_SCHEMES.map((scheme) => (
-              <button
-                key={scheme.id}
-                type="button"
-                className={`scheme-switch ${scheme.id === colorScheme ? "active" : ""}`}
-                style={{
-                  background: `linear-gradient(180deg, ${scheme.light} 50%, ${scheme.dark} 50%)`,
+          <div className="controls">
+            <button type="button" onClick={handleReset} className="btn">
+              <RotateCcw size={14} />
+              Reset
+            </button>
+            <button type="button" onClick={() => setFlipped((f) => !f)} className="btn">
+              <FlipVertical2 size={14} />
+              Flip
+            </button>
+            <select
+              value={pieceFont}
+              onChange={(e) => setPieceFont(e.target.value)}
+              className="font-select"
+            >
+              {PIECE_FONTS.map((font) => (
+                <option key={font.value} value={font.value}>
+                  {font.label}
+                </option>
+              ))}
+            </select>
+            <div className="scheme-picker">
+              {COLOR_SCHEMES.map((scheme) => (
+                <button
+                  key={scheme.id}
+                  type="button"
+                  className={`scheme-switch ${scheme.id === colorScheme ? "active" : ""}`}
+                  style={{
+                    background: `linear-gradient(180deg, ${scheme.light} 50%, ${scheme.dark} 50%)`,
+                  }}
+                  title={scheme.label}
+                  onClick={() => setColorScheme(scheme.id)}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>PGN</label>
+            <div className="field-row">
+              <textarea value={pgn} readOnly />
+              <button type="button" onClick={() => handleCopy(pgn, "pgn")} className="copy-btn" title="Copy PGN">
+                <Copy size={14} className={copiedField === "pgn" ? "copied" : ""} />
+              </button>
+            </div>
+          </div>
+
+          <div className="field">
+            <label>FEN</label>
+            <div className="field-row">
+              <input
+                type="text"
+                value={fen}
+                onChange={(e) => handleFenChange(e.target.value)}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pasted = e.clipboardData.getData("text");
+                  handleFenChange(pasted.trim());
                 }}
-                title={scheme.label}
-                onClick={() => setColorScheme(scheme.id)}
               />
-            ))}
+              <button type="button" onClick={() => handleCopy(fen, "fen")} className="copy-btn" title="Copy FEN">
+                <Copy size={14} className={copiedField === "fen" ? "copied" : ""} />
+              </button>
+            </div>
           </div>
         </div>
 
-        <div className="field">
-          <label>PGN</label>
-          <div className="field-row">
-            <textarea value={pgn} readOnly />
-            <button type="button" onClick={() => handleCopy(pgn, "pgn")} className="copy-btn" title="Copy PGN">
-              <Copy size={14} className={copiedField === "pgn" ? "copied" : ""} />
-            </button>
-          </div>
-        </div>
+        <OpeningsBar
+          completed={completedOpenings}
+          continuations={continuationOpenings}
+          moreCount={moreCount}
+          onMoveClick={handleOpeningClick}
+          onMoveHover={handleOpeningHover}
+        />
+      </main>
 
-        <div className="field">
-          <label>FEN</label>
-          <div className="field-row">
-            <input
-              type="text"
-              value={fen}
-              onChange={(e) => handleFenChange(e.target.value)}
-              onPaste={(e) => {
-                e.preventDefault();
-                const pasted = e.clipboardData.getData("text");
-                handleFenChange(pasted.trim());
-              }}
-            />
-            <button type="button" onClick={() => handleCopy(fen, "fen")} className="copy-btn" title="Copy FEN">
-              <Copy size={14} className={copiedField === "fen" ? "copied" : ""} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <OpeningsBar
-        completed={completedOpenings}
-        continuations={continuationOpenings}
-        moreCount={moreCount}
-        onMoveClick={handleOpeningClick}
-        onMoveHover={handleOpeningHover}
-      />
-    </div>
+      <footer className="app-footer">&copy; 2026 @maliqq + gpt-5.2-codex + Claude Opus 4.5</footer>
+    </>
   );
 }
