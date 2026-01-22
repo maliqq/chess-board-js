@@ -179,7 +179,8 @@ export function App() {
 
   return (
     <>
-      <main className="app" style={{
+      <header></header>
+      <main style={{
         "--piece-font": `'${pieceFont}'`,
         "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX ?? "0px",
         "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY ?? "0px",
@@ -266,7 +267,7 @@ export function App() {
         />
       </main>
 
-      <footer className="app-footer">&copy; 2026 @maliqq + gpt-5.2-codex + Claude Opus 4.5</footer>
+      <footer>&copy; 2026 @maliqq + gpt-5.2-codex + Claude Opus 4.5</footer>
     </>
   );
 }
