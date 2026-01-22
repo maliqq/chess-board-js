@@ -1,6 +1,6 @@
 import "./App.css";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Copy, RotateCcw, FlipVertical2 } from "lucide-react";
 import { Board as ChessBoard } from "./lib/chess";
 import { parseSAN } from "./lib/san";
@@ -54,6 +54,21 @@ export function App() {
   const [previewSan, setPreviewSan] = useState<string | null>(null);
   const [pieceFont, setPieceFont] = useState("Chess-Master");
   const [colorScheme, setColorScheme] = useState("standard");
+
+  useEffect(() => {
+    const storedFont = localStorage.getItem("pieceFont");
+    const storedScheme = localStorage.getItem("colorScheme");
+    if (storedFont) setPieceFont(storedFont);
+    if (storedScheme) setColorScheme(storedScheme);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("pieceFont", pieceFont);
+  }, [pieceFont]);
+
+  useEffect(() => {
+    localStorage.setItem("colorScheme", colorScheme);
+  }, [colorScheme]);
 
   const fen = useMemo(() => computeFen(baseFen, moves, viewIndex), [baseFen, moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
