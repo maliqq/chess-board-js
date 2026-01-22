@@ -51,12 +51,14 @@ export function Board({ fen, swapped = false, onMove, previewMove }: BoardProps)
 
     // If we have a selected piece and clicked on a valid move target
     if (selected) {
-      const isValidMove = possibleMoves.some((m) => m[0] === x && m[1] === y);
+      const matchingMove = possibleMoves.find((m) => m[0] === x && m[1] === y);
+      const isValidMove = !!matchingMove;
 
       if (isValidMove) {
         const [fromX, fromY] = selected;
         const movedPiece = Piece.fromCode(boardModel.get(fromX, fromY));
-        const isCapture = !clickedPiece.isEmpty;
+        // Check if it's a capture - either the destination has a piece, or it's marked as capture (en passant)
+        const isCapture = !clickedPiece.isEmpty || matchingMove[2] === "capture";
 
         // Build SAN notation
         const toSquare = FILES[y] + RANKS[x];

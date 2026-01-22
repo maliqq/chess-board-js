@@ -30,6 +30,12 @@ type MoveEntry = {
     toY: number;
     piece: number;
   };
+  enPassantCapture?: {
+    x: number;
+    y: number;
+    piece: number;
+  };
+  prevEnPassantTarget: [number, number] | null;
 };
 
 class Log {
@@ -66,6 +72,7 @@ class Log {
     y: number,
     san: string,
     rookMove?: { fromX: number; fromY: number; toX: number; toY: number },
+    enPassantCapture?: { x: number; y: number },
   ) {
     // If we're not at the end, truncate future moves
     if (this.index < this.moves.length) {
@@ -80,11 +87,18 @@ class Log {
       piece: this.b.get(fromX, fromY),
       captured: this.b.get(x, y),
       san,
+      prevEnPassantTarget: this.b.enPassantTarget,
     };
     if (rookMove) {
       entry.rookMove = {
         ...rookMove,
         piece: this.b.get(rookMove.fromX, rookMove.fromY),
+      };
+    }
+    if (enPassantCapture) {
+      entry.enPassantCapture = {
+        ...enPassantCapture,
+        piece: this.b.get(enPassantCapture.x, enPassantCapture.y),
       };
     }
     this.moves.push(entry);
@@ -108,6 +122,11 @@ class Log {
       this.b.put(entry.rookMove.fromX, entry.rookMove.fromY, entry.rookMove.piece);
       this.b.clear(entry.rookMove.toX, entry.rookMove.toY);
     }
+    if (entry.enPassantCapture) {
+      this.b.put(entry.enPassantCapture.x, entry.enPassantCapture.y, entry.enPassantCapture.piece);
+    }
+    // Restore previous en passant target
+    this.b.enPassantTarget = entry.prevEnPassantTarget;
     this.b.switchTurn();
 
     return true;
@@ -125,6 +144,9 @@ class Log {
     if (entry.rookMove) {
       this.b.clear(entry.rookMove.fromX, entry.rookMove.fromY);
       this.b.put(entry.rookMove.toX, entry.rookMove.toY, entry.rookMove.piece);
+    }
+    if (entry.enPassantCapture) {
+      this.b.clear(entry.enPassantCapture.x, entry.enPassantCapture.y);
     }
     this.b.switchTurn();
 
@@ -306,6 +328,15 @@ class Suggests {
       const move2 = checkPossibleCapture(x + o, y - 1);
       if (move1 !== false) possibleMoves.push(move1);
       if (move2 !== false) possibleMoves.push(move2);
+
+      // En passant captures
+      if (this.b.enPassantTarget) {
+        const [epRow, epCol] = this.b.enPassantTarget;
+        // Check if this pawn can capture en passant (must be adjacent and correct rank)
+        if (x + o === epRow && Math.abs(y - epCol) === 1) {
+          possibleMoves.push([epRow, epCol, "capture"]);
+        }
+      }
     } else if (p.piece === ROOK) {
       possibleMoves.push(...this.filterShadows(x, y, isBlack, directMove(), false));
     } else if (p.piece === KNIGHT) {
@@ -406,6 +437,7 @@ export class Board {
   pgn: ParsedMove[];
   activeColor: "w" | "b";
   castlingAvailability: string;
+  enPassantTarget: [number, number] | null;
 
   constructor(fen?: string) {
     const defaultFEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -424,7 +456,26 @@ export class Board {
     // Parse castling availability (default to all)
     this.castlingAvailability = parts[2] || "KQkq";
 
+    // Parse en passant target square
+    this.enPassantTarget = this.parseEnPassantSquare(parts[3]);
+
     this.pgn = [];
+  }
+
+  private parseEnPassantSquare(square?: string): [number, number] | null {
+    if (!square || square === "-") return null;
+    const file = square.charCodeAt(0) - "a".charCodeAt(0); // 0-7
+    const rank = 8 - parseInt(square[1], 10); // Convert to row index (0-7)
+    if (file >= 0 && file < 8 && rank >= 0 && rank < 8) {
+      return [rank, file];
+    }
+    return null;
+  }
+
+  private enPassantSquareToString(): string {
+    if (!this.enPassantTarget) return "-";
+    const [rank, file] = this.enPassantTarget;
+    return String.fromCharCode("a".charCodeAt(0) + file) + (8 - rank);
   }
 
   toFen() {
@@ -443,7 +494,8 @@ export class Board {
       if (i !== 7) fen += "/";
     }
     const castling = this.castlingAvailability || "-";
-    return `${fen} ${this.activeColor} ${castling} - 0 1`;
+    const enPassant = this.enPassantSquareToString();
+    return `${fen} ${this.activeColor} ${castling} ${enPassant} 0 1`;
   }
 
   loadFEN(fen: string) {
@@ -452,6 +504,7 @@ export class Board {
     this.activeColor = parts[1] === "b" ? "b" : "w";
     this.isBlack = this.activeColor === "b";
     this.castlingAvailability = parts[2] || "KQkq";
+    this.enPassantTarget = this.parseEnPassantSquare(parts[3]);
   }
 
   get(x: number, y: number) {
@@ -475,7 +528,9 @@ export class Board {
     const captured = this.get(x2, y2);
     const moved = Piece.fromCode(piece);
     let rookMove: { fromX: number; fromY: number; toX: number; toY: number } | undefined;
+    let enPassantCapture: { x: number; y: number } | undefined;
 
+    // Handle castling
     if (!moved.isEmpty && moved.piece === KING && Math.abs(y2 - y) === 2) {
       if (!san) {
         san = y2 > y ? "O-O" : "O-O-O";
@@ -487,7 +542,17 @@ export class Board {
       }
     }
 
-    this.log.track(x, y, x2, y2, san, rookMove);
+    // Handle en passant capture
+    if (!moved.isEmpty && moved.piece === PAWN && this.enPassantTarget) {
+      const [epRow, epCol] = this.enPassantTarget;
+      if (x2 === epRow && y2 === epCol) {
+        // This is an en passant capture - the captured pawn is on the same file but different rank
+        const capturedPawnRow = moved.isBlack ? epRow - 1 : epRow + 1;
+        enPassantCapture = { x: capturedPawnRow, y: epCol };
+      }
+    }
+
+    this.log.track(x, y, x2, y2, san, rookMove, enPassantCapture);
     this.clear(x, y);
     this.put(x2, y2, piece);
 
@@ -495,6 +560,19 @@ export class Board {
       const rookPiece = this.get(rookMove.fromX, rookMove.fromY);
       this.clear(rookMove.fromX, rookMove.fromY);
       this.put(rookMove.toX, rookMove.toY, rookPiece);
+    }
+
+    // Remove captured pawn in en passant
+    if (enPassantCapture) {
+      this.clear(enPassantCapture.x, enPassantCapture.y);
+    }
+
+    // Set new en passant target if pawn moved two squares
+    if (!moved.isEmpty && moved.piece === PAWN && Math.abs(x2 - x) === 2) {
+      const epRow = (x + x2) / 2; // The square the pawn passed through
+      this.enPassantTarget = [epRow, y];
+    } else {
+      this.enPassantTarget = null;
     }
 
     this.updateCastlingAvailability(moved, x, y, captured, x2, y2);
