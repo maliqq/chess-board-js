@@ -1,6 +1,7 @@
 import React from "react";
 import { FILES, RANKS } from "../lib/constants";
 import type { PieceInfo } from "../lib/types";
+import cn from 'classnames';
 import { Piece } from "./Piece";
 
 type SquareProps = {
