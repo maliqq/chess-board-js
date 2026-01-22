@@ -36,6 +36,7 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont }: 
     () => new Set(possibleMoves.map((m) => moveKey(m[0], m[1]))),
     [possibleMoves]
   );
+  const checkState = useMemo(() => boardModel.getCheckState(), [boardModel]);
 
   const files = swapped ? FILES.split("").reverse() : FILES.split("");
   const ranks = swapped ? RANKS.split("").reverse() : RANKS.split("");
@@ -138,6 +139,8 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont }: 
                 previewMove?.from[0] === boardRowIndex && previewMove?.from[1] === boardColIndex;
               const isPreviewTo =
                 previewMove?.to[0] === boardRowIndex && previewMove?.to[1] === boardColIndex;
+              const isKingSquare =
+                checkState.kingPos?.[0] === boardRowIndex && checkState.kingPos?.[1] === boardColIndex;
               return (
                 <Square
                   key={`${file}${rankChar}`}
@@ -147,8 +150,8 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont }: 
                   isMoveTo={isPreviewTo}
                   isSelected={isSelected}
                   isPossibleMoveTo={isPossibleMoveTo}
-                  isCheck={false}
-                  isCheckmate={false}
+                  isCheck={isKingSquare && checkState.isCheck && !checkState.isCheckmate}
+                  isCheckmate={isKingSquare && checkState.isCheckmate}
                   isAttacked={false}
                   isUndefended={false}
                   isPinned={false}

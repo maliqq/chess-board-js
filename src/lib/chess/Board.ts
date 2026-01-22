@@ -743,6 +743,23 @@ export class Board {
     return Piece.fromCode(this.get(x, y));
   }
 
+  getCheckState() {
+    const kingPos = this.findKing(this.isBlack);
+    if (!kingPos) return { isCheck: false, isCheckmate: false, kingPos: null as [number, number] | null };
+
+    const attackers = this.getAttackers(kingPos[0], kingPos[1], !this.isBlack);
+    const isCheck = attackers.length > 0;
+    if (!isCheck) {
+      return { isCheck: false, isCheckmate: false, kingPos };
+    }
+
+    const kingMoves = this.getLegalKingMoves(kingPos[0], kingPos[1], this.isBlack);
+    const canProtect = this.canProtectCheck(kingPos[0], kingPos[1], attackers);
+    const isCheckmate = kingMoves.length === 0 && !canProtect;
+
+    return { isCheck, isCheckmate, kingPos };
+  }
+
   eachPiece(block: (piece: PieceInfo, x: number, y: number) => void) {
     for (let i = 0; i < BOARD_SIZE; i++) {
       for (let j = 0; j < BOARD_SIZE; j++) {
@@ -828,5 +845,167 @@ export class Board {
 
   get sans(): string[] {
     return this.log.sans;
+  }
+
+  private findKing(isBlack: boolean): [number, number] | null {
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        const piece = this.getPiece(i, j);
+        if (piece && piece.piece === KING && piece.isBlack === isBlack) {
+          return [i, j];
+        }
+      }
+    }
+    return null;
+  }
+
+  private isSquareAttacked(x: number, y: number, byBlack: boolean): boolean {
+    return this.getAttackers(x, y, byBlack).length > 0;
+  }
+
+  private getAttackers(x: number, y: number, byBlack: boolean) {
+    const attackers: Array<{ x: number; y: number; piece: number; dir?: [number, number] }> = [];
+
+    const directions: Array<[number, number]> = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1],
+      [1, 1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+    ];
+
+    for (const [dx, dy] of directions) {
+      for (let step = 1; step < BOARD_SIZE; step++) {
+        const nx = x + dx * step;
+        const ny = y + dy * step;
+        if (this.outOfBoard(nx, ny)) break;
+
+        const piece = this.getPiece(nx, ny);
+        if (!piece) continue;
+        if (piece.isBlack !== byBlack) break;
+
+        if (dx === 0 || dy === 0) {
+          if (piece.piece === ROOK || piece.piece === QUEEN) {
+            attackers.push({ x: nx, y: ny, piece: piece.piece, dir: [dx, dy] });
+          }
+        } else {
+          if (piece.piece === BISHOP || piece.piece === QUEEN) {
+            attackers.push({ x: nx, y: ny, piece: piece.piece, dir: [dx, dy] });
+          }
+        }
+        if (step === 1 && piece.piece === KING) {
+          attackers.push({ x: nx, y: ny, piece: piece.piece, dir: [dx, dy] });
+        }
+        break;
+      }
+    }
+
+    const pawnDir = byBlack ? 1 : -1;
+    const pawnTargets = [
+      [x + pawnDir, y + 1],
+      [x + pawnDir, y - 1],
+    ];
+    for (const [px, py] of pawnTargets) {
+      if (this.outOfBoard(px, py)) continue;
+      const piece = this.getPiece(px, py);
+      if (piece && piece.isBlack === byBlack && piece.piece === PAWN) {
+        attackers.push({ x: px, y: py, piece: piece.piece });
+      }
+    }
+
+    const knightMoves = [
+      [2, 1],
+      [2, -1],
+      [1, 2],
+      [-1, 2],
+      [-1, -2],
+      [1, -2],
+      [-2, -1],
+      [-2, 1],
+    ];
+    for (const [dx, dy] of knightMoves) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (this.outOfBoard(nx, ny)) continue;
+      const piece = this.getPiece(nx, ny);
+      if (piece && piece.isBlack === byBlack && piece.piece === KNIGHT) {
+        attackers.push({ x: nx, y: ny, piece: piece.piece });
+      }
+    }
+
+    return attackers;
+  }
+
+  private getLegalKingMoves(x: number, y: number, isBlack: boolean): Array<[number, number]> {
+    const moves: Array<[number, number]> = [];
+    const steps = [
+      [1, 1],
+      [-1, -1],
+      [1, -1],
+      [-1, 1],
+      [-1, -1],
+      [1, 0],
+      [-1, 0],
+      [0, -1],
+      [0, 1],
+    ];
+
+    for (const [dx, dy] of steps) {
+      const nx = x + dx;
+      const ny = y + dy;
+      if (this.outOfBoard(nx, ny)) continue;
+      const piece = this.getPiece(nx, ny);
+      if (piece && piece.isBlack === isBlack) continue;
+      if (!this.isSquareAttacked(nx, ny, !isBlack)) {
+        moves.push([nx, ny]);
+      }
+    }
+    return moves;
+  }
+
+  private canProtectCheck(
+    kingX: number,
+    kingY: number,
+    attackers: Array<{ x: number; y: number; piece: number; dir?: [number, number] }>,
+  ): boolean {
+    if (attackers.length !== 1) return false;
+    const attacker = attackers[0];
+    if (attacker.piece === KNIGHT) return false;
+
+    const targets: Array<[number, number]> = [];
+
+    if (attacker.dir) {
+      const [dx, dy] = attacker.dir;
+      let cx = kingX + dx;
+      let cy = kingY + dy;
+      while (cx !== attacker.x || cy !== attacker.y) {
+        targets.push([cx, cy]);
+        cx += dx;
+        cy += dy;
+      }
+      targets.push([attacker.x, attacker.y]);
+    } else {
+      targets.push([attacker.x, attacker.y]);
+    }
+
+    for (let i = 0; i < BOARD_SIZE; i++) {
+      for (let j = 0; j < BOARD_SIZE; j++) {
+        const piece = this.getPiece(i, j);
+        if (!piece || piece.isBlack !== this.isBlack || piece.piece === KING) continue;
+        const moves = this.suggests.possibleMoves(i, j);
+        for (const move of moves) {
+          const mx = move[0];
+          const my = move[1];
+          if (targets.some((t) => t[0] === mx && t[1] === my)) {
+            return true;
+          }
+        }
+      }
+    }
+
+    return false;
   }
 }
