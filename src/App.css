@@ -436,7 +436,7 @@ footer {
 .piece {
   display: block;
   position: absolute;
-  font-size: 37px;
+  font-size: var(--piece-font-size, 50px);
   line-height: 50px;
   font-family: var(--piece-font, 'Chess-Master');
   cursor: pointer;
@@ -455,5 +455,10 @@ footer {
   font-family: "Chessvetica-Black" !important;
 }
 .piece.white.chessvetica {
+  font-weight: bold;
   font-family: "Chessvetica-White" !important;
+}
+
+.piece.chessvetica.pawn {
+  margin-top: 2px !important;
 }

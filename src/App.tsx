@@ -35,9 +35,9 @@ function isValidFen(fen: string): boolean {
 const moveSound = new Audio("/sounds/Move.ogg");
 
 const PIECE_FONTS = [
-  { value: "Open-Chess-Font", label: "Open Chess Font", offsetX: "7px", offsetY: "-1px" },
-  { value: "Chess-Master", label: "Chess Master", offsetX: "14px", offsetY: "2px" },
-  { value: "Chessvetica", label: "Chessvetica", offsetX: "16px", offsetY: "4px" },
+  { value: "Open-Chess-Font", label: "Open Chess Font", offsetX: "7px", offsetY: "0px", fontSize: "37px" },
+  { value: "Chess-Master", label: "Chess Master", offsetX: "10px", offsetY: "3px" },
+  { value: "Chessvetica", label: "Chessvetica", offsetX: "16px", offsetY: "5px", fontSize: "37px" },
 ];
 
 const COLOR_SCHEMES = [
@@ -182,10 +182,11 @@ export function App() {
       <header></header>
       <main style={{
         "--piece-font": `'${pieceFont}'`,
-        "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX ?? "0px",
-        "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY ?? "0px",
-        "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light ?? "#F0D9B5",
-        "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark ?? "#B58864",
+        "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX,
+        "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY,
+        "--piece-font-size": PIECE_FONTS.find(f => f.value === pieceFont)?.fontSize,
+        "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light,
+        "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark,
       } as React.CSSProperties}>
         <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 

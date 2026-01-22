@@ -32,7 +32,7 @@ function matchesPrefix(pgn: string, prefix: string): boolean {
 
 export function searchOpenings(sans: string[], activeColor: "w" | "b" = "w"): OpeningData[] {
   const prefix = sansToPgn(sans);
-  console.log('searching prefix', prefix);
+  //console.log('searching prefix', prefix);
   const matches = sans.length === 0 ? openings : openings.filter((o) => matchesPrefix(o.pgn, prefix));
 
   return matches.sort((a, b) => {

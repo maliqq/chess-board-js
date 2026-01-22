@@ -1,5 +1,5 @@
 import React from "react";
-import { FILES, RANKS } from "../lib/constants";
+import { PAWN, FILES, RANKS } from "../lib/constants";
 import type { PieceInfo } from "../lib/types";
 import cn from 'classnames';
 import { Piece } from "./Piece";
@@ -42,8 +42,10 @@ export function Square({
   const fileIndex = FILES.indexOf(file);
   const rankIndex = RANKS.indexOf(String(rank));
   const isLightSquare = fileIndex !== -1 && rankIndex !== -1 ? (fileIndex + rankIndex) % 2 === 0 : true;
+  const isPawn = piece == PAWN;
 
   const classes = ["square", isLightSquare ? "odd" : "even"];
+  if (isPawn) classes.push("pawn");
   if (isSelected) classes.push("selected");
   if (isPossibleMoveTo) classes.push("suggested");
   if (isMoveFrom) classes.push("move-from");
