@@ -47,6 +47,23 @@
   background: white;
   cursor: pointer;
 }
+.scheme-picker {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.scheme-switch {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  cursor: pointer;
+  padding: 0;
+}
+.scheme-switch.active {
+  outline: 2px solid #111827;
+  outline-offset: 2px;
+}
 
 .field {
   display: flex;
@@ -325,10 +342,10 @@
   cursor: pointer;
 }
 .cell.odd {
-  background-color: #f0d9b5;
+  background-color: var(--square-light, #f0d9b5);
 }
 .cell.even {
-  background-color: #b58863;
+  background-color: var(--square-dark, #b58863);
 }
 .cell.selected {
   background-color: #829769;

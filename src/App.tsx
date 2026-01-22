@@ -39,6 +39,12 @@ const PIECE_FONTS = [
   { value: "Open-Chess-Font", label: "Open Chess Font", offsetX: "7px", offsetY: "-1px" },
 ];
 
+const COLOR_SCHEMES = [
+  { id: "standard", label: "Standard", light: "#F0D9B5", dark: "#B58864" },
+  { id: "green", label: "Chess.com Green", light: "#EEEED2", dark: "#779656" },
+  { id: "blue", label: "Chess.com Blue", light: "#EAE9D2", dark: "#4B7399" },
+];
+
 export function App() {
   const [baseFen, setBaseFen] = useState(DEFAULT_FEN);
   const [moves, setMoves] = useState<string[]>([]);
@@ -47,6 +53,7 @@ export function App() {
   const [copiedField, setCopiedField] = useState<"fen" | "pgn" | null>(null);
   const [previewSan, setPreviewSan] = useState<string | null>(null);
   const [pieceFont, setPieceFont] = useState("Chess-Master");
+  const [colorScheme, setColorScheme] = useState("standard");
 
   const fen = useMemo(() => computeFen(baseFen, moves, viewIndex), [baseFen, moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
@@ -141,6 +148,8 @@ export function App() {
       "--piece-font": `'${pieceFont}'`,
       "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX ?? "0px",
       "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY ?? "0px",
+      "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light ?? "#F0D9B5",
+      "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark ?? "#B58864",
     } as React.CSSProperties}>
       <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
@@ -167,6 +176,20 @@ export function App() {
               </option>
             ))}
           </select>
+          <div className="scheme-picker">
+            {COLOR_SCHEMES.map((scheme) => (
+              <button
+                key={scheme.id}
+                type="button"
+                className={`scheme-switch ${scheme.id === colorScheme ? "active" : ""}`}
+                style={{
+                  background: `linear-gradient(180deg, ${scheme.light} 50%, ${scheme.dark} 50%)`,
+                }}
+                title={scheme.label}
+                onClick={() => setColorScheme(scheme.id)}
+              />
+            ))}
+          </div>
         </div>
 
         <div className="field">
