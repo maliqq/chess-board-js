@@ -65,6 +65,14 @@ export function OpeningsBar({ completed, continuations, moreCount = 0, onMoveCli
     <div className="openings-bar">
       <div className="header">
         <h4>Openings</h4>
+        <a
+          className="openings-link"
+          href="https://github.com/lichess-org/chess-openings"
+          target="_blank"
+          rel="noreferrer"
+        >
+          source
+        </a>
       </div>
 
       <div className="list">

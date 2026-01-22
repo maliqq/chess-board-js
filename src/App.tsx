@@ -267,7 +267,7 @@ export function App() {
         />
       </main>
 
-      <footer>&copy; 2026 @maliqq + gpt-5.2-codex + Claude Opus 4.5</footer>
+      <footer>&copy; 2026 @maliqq</footer>
     </>
   );
 }
