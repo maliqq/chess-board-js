@@ -24,11 +24,16 @@ export function sansToPgn(sans: string[]): string {
   return pgn;
 }
 
+function matchesPrefix(pgn: string, prefix: string): boolean {
+  if (!pgn.startsWith(prefix)) return false;
+  // Must be exact match or continue with space (next move)
+  return pgn.length === prefix.length || pgn[prefix.length] === " ";
+}
+
 export function searchOpenings(sans: string[], activeColor: "w" | "b" = "w"): OpeningData[] {
-  const matches =
-    sans.length === 0
-      ? openings
-      : openings.filter((o) => o.pgn.startsWith(sansToPgn(sans)));
+  const prefix = sansToPgn(sans);
+  console.log('searching prefix', prefix);
+  const matches = sans.length === 0 ? openings : openings.filter((o) => matchesPrefix(o.pgn, prefix));
 
   return matches.sort((a, b) => {
     const aScore = activeColor === "b" ? a.black ?? 0 : a.white ?? 0;

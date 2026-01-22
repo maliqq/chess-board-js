@@ -42,6 +42,9 @@ function OpeningRow({ opening, nextSan, onMoveClick, onMoveHover }: OpeningRowPr
         <span className="eco">{opening.eco}</span>
         <span className="name">{opening.name}</span>
       </div>
+      {/*<div>
+        {opening.pgn}
+      </div>*/}
       {nextSan && <div className="next-move">Next: {nextSan}</div>}
       <div className="stats-bar" title={title}>
         <span className="white" style={{ width: `${whitePct}%` }} />
@@ -70,17 +73,16 @@ export function OpeningsBar({ completed, continuations, onMoveClick, onMoveHover
           <>
             {hasCompleted && (
               <div className="completed-section">
-                {completed.map(({ opening, nextSan }) => (
-                  <OpeningRow key={`${opening.eco}-${opening.name}`} opening={opening} nextSan={nextSan} />
+                {completed.map(({ opening, nextSan }, i) => (
+                  <OpeningRow key={`${opening.eco}-${opening.name}-${i}`} opening={opening} nextSan={nextSan} />
                 ))}
               </div>
             )}
-            {hasCompleted && hasContinuations && <div className="section-separator" />}
             {hasContinuations && (
               <div className="continuations-section">
-                {continuations.map(({ opening, nextSan }) => (
+                {continuations.map(({ opening, nextSan }, i) => (
                   <OpeningRow
-                    key={`${opening.eco}-${opening.name}`}
+                    key={`${opening.eco}-${opening.name}-${i}`}
                     opening={opening}
                     nextSan={nextSan}
                     onMoveClick={onMoveClick}

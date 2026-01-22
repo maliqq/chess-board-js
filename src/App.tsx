@@ -56,6 +56,8 @@ export function App() {
     }
   }, [fen, previewSan]);
 
+  //console.log('visibleMoves=', visibleMoves, 'activeColor=', activeColor);
+
   const { completedOpenings, continuationOpenings } = useMemo(() => {
     const matches = searchOpenings(visibleMoves, activeColor);
     const completed: Array<{ opening: typeof matches[0]; nextSan?: string }> = [];
