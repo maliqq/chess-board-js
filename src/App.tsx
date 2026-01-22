@@ -37,6 +37,7 @@ const moveSound = new Audio("/sounds/Move.ogg");
 const PIECE_FONTS = [
   { value: "Chess-Master", label: "Chess Master", offsetX: "14px", offsetY: "2px" },
   { value: "Open-Chess-Font", label: "Open Chess Font", offsetX: "7px", offsetY: "-1px" },
+  { value: "Chessvetica", label: "Chessvetica", offsetX: "16px", offsetY: "4px" },
 ];
 
 const COLOR_SCHEMES = [

@@ -392,6 +392,15 @@
   font-family: 'Open-Chess-Font';
   src: url(/fonts/OpenChessFont.ttf);
 }
+@font-face {
+  font-family: 'Chessvetica-White';
+  src: url(/fonts/Chessvetica-Outlined.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Chessvetica-Black';
+  src: url(/fonts/Chessvetica-Regular.woff2) format('woff2');
+}
+
 .piece {
   display: block;
   position: absolute;
@@ -408,4 +417,11 @@
 }
 .piece.white {
   text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+
+.piece.black.chessvetica {
+  font-family: "Chessvetica-Black" !important;
+}
+.piece.white.chessvetica {
+  font-family: "Chessvetica-White" !important;
 }

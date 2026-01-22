@@ -1,6 +1,7 @@
 import React from "react";
 import type { PieceInfo } from "../lib/types";
 import { KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN } from "../lib/constants";
+import cn from "classnames";
 
 type PieceProps = {
   piece: PieceInfo;
@@ -27,12 +28,23 @@ export function Piece({ piece, pieceFont }: PieceProps) {
   if (piece.isEmpty) return null;
 
   const isOpenChessFont = pieceFont === "Open-Chess-Font";
-  const symbol = isOpenChessFont
-    ? getOpenChessFontChar(piece)
-    : piece.symbol;
+  let symbol = piece.symbol;
+
+  let classes = ["piece", piece.name, piece.isBlack ? "black" : "white"];
+
+  switch (pieceFont) {
+  case "Open-Chess-Font":
+    symbol = getOpenChessFontChar(piece);
+    break;
+  default:
+    if (pieceFont.startsWith("Chessvetica")) {
+      symbol = piece.letter.toUpperCase();
+      classes.push('chessvetica');
+    }
+  }
 
   return (
-    <span className={`piece ${piece.name} ${piece.isBlack ? "black" : "white"}`}>
+    <span className={cn(classes)}>
       {symbol}
     </span>
   );
