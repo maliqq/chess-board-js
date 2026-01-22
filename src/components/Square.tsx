@@ -39,7 +39,7 @@ export function Square({
 
   return (
     <div className={cn(classes)} data-file={file} data-rank={rank} onClick={onClick}>
-      {piece ? <Piece piece={piece} isLightSquare={isLightSquare} pieceFont={pieceFont} /> : null}
+      {piece ? <Piece piece={piece} pieceFont={pieceFont} /> : null}
     </div>
   );
 }

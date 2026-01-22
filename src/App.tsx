@@ -35,8 +35,8 @@ function isValidFen(fen: string): boolean {
 const moveSound = new Audio("/sounds/Move.ogg");
 
 const PIECE_FONTS = [
-  { value: "Chess-Master", label: "Chess Master" },
-  { value: "Open-Chess-Font", label: "Open Chess Font" },
+  { value: "Chess-Master", label: "Chess Master", offsetX: "14px", offsetY: "2px" },
+  { value: "Open-Chess-Font", label: "Open Chess Font", offsetX: "7px", offsetY: "-1px" },
 ];
 
 export function App() {
@@ -137,7 +137,11 @@ export function App() {
   };
 
   return (
-    <div className="app" style={{ "--piece-font": `'${pieceFont}'` } as React.CSSProperties}>
+    <div className="app" style={{
+      "--piece-font": `'${pieceFont}'`,
+      "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX ?? "0px",
+      "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY ?? "0px",
+    } as React.CSSProperties}>
       <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
       <div className="center-panel">

@@ -318,6 +318,7 @@
 }
 .cell {
   display: table-cell;
+  position: relative;
   width: 50px;
   height: 50px;
   border: 1px solid black;
@@ -355,14 +356,15 @@
   src: url(/fonts/OpenChessFont.ttf);
 }
 .piece {
-  padding-left: 7px;
-  width: 100%;
-  height: 100%;
+  display: block;
+  position: absolute;
   font-size: 37px;
-  vertical-align: middle;
   line-height: 50px;
   font-family: var(--piece-font, 'Chess-Master');
   cursor: pointer;
+  margin-left: var(--piece-offset-x, 0px);
+  margin-top: var(--piece-offset-y, 0px);
+  box-sizing: border-box;
 }
 .piece.black {
   text-shadow: 1px 1px 3px rgba(0,0,0,0.3);

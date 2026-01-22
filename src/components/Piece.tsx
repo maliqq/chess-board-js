@@ -4,39 +4,31 @@ import { KING, QUEEN, BISHOP, KNIGHT, ROOK, PAWN } from "../lib/constants";
 
 type PieceProps = {
   piece: PieceInfo;
-  isLightSquare?: boolean;
   pieceFont?: string;
 };
 
-// Open Chess Font character mapping
-// Format: [whitePieceWhiteSquare, whitePieceBlackSquare, blackPieceWhiteSquare, blackPieceBlackSquare]
-const OPEN_CHESS_FONT_MAP: Record<number, [string, string, string, string]> = {
-  [KING]:   ["K", "k", "L", "l"],
-  [QUEEN]:  ["Q", "q", "W", "w"],
-  [BISHOP]: ["B", "b", "V", "v"],
-  [KNIGHT]: ["N", "n", "M", "m"],
-  [ROOK]:   ["R", "r", "T", "t"],
-  [PAWN]:   ["P", "p", "O", "o"],
+// Open Chess Font character mapping: [whitePiece, blackPiece]
+const OPEN_CHESS_FONT_MAP: Record<number, [string, string]> = {
+  [KING]:   ["K", "L"],
+  [QUEEN]:  ["Q", "W"],
+  [BISHOP]: ["B", "V"],
+  [KNIGHT]: ["N", "M"],
+  [ROOK]:   ["R", "T"],
+  [PAWN]:   ["P", "O"],
 };
 
-function getOpenChessFontChar(piece: PieceInfo, isLightSquare: boolean): string {
+function getOpenChessFontChar(piece: PieceInfo): string {
   const mapping = OPEN_CHESS_FONT_MAP[piece.piece];
   if (!mapping) return piece.symbol;
-
-  const isWhitePiece = !piece.isBlack;
-  if (isWhitePiece) {
-    return isLightSquare ? mapping[0] : mapping[1];
-  } else {
-    return isLightSquare ? mapping[2] : mapping[3];
-  }
+  return piece.isBlack ? mapping[1] : mapping[0];
 }
 
-export function Piece({ piece, isLightSquare = true, pieceFont }: PieceProps) {
+export function Piece({ piece, pieceFont }: PieceProps) {
   if (piece.isEmpty) return null;
 
   const isOpenChessFont = pieceFont === "Open-Chess-Font";
   const symbol = isOpenChessFont
-    ? getOpenChessFontChar(piece, isLightSquare)
+    ? getOpenChessFontChar(piece)
     : piece.symbol;
 
   return (
