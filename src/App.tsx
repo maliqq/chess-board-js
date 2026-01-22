@@ -46,6 +46,27 @@ const COLOR_SCHEMES = [
   { id: "blue", label: "Chess.com Blue", light: "#EAE9D2", dark: "#4B7399" },
 ];
 
+function safeGetStorage(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function resolvePieceFont(value: string | null): string {
+  const fallback = "Chess-Master";
+  if (!value) return fallback;
+  return PIECE_FONTS.some((font) => font.value === value) ? value : fallback;
+}
+
+function resolveColorScheme(value: string | null): string {
+  const fallback = "standard";
+  if (!value) return fallback;
+  return COLOR_SCHEMES.some((scheme) => scheme.id === value) ? value : fallback;
+}
+
 export function App() {
   const [baseFen, setBaseFen] = useState(DEFAULT_FEN);
   const [moves, setMoves] = useState<string[]>([]);
@@ -53,15 +74,12 @@ export function App() {
   const [flipped, setFlipped] = useState(false);
   const [copiedField, setCopiedField] = useState<"fen" | "pgn" | null>(null);
   const [previewSan, setPreviewSan] = useState<string | null>(null);
-  const [pieceFont, setPieceFont] = useState("Chess-Master");
-  const [colorScheme, setColorScheme] = useState("standard");
-
-  useEffect(() => {
-    const storedFont = localStorage.getItem("pieceFont");
-    const storedScheme = localStorage.getItem("colorScheme");
-    if (storedFont) setPieceFont(storedFont);
-    if (storedScheme) setColorScheme(storedScheme);
-  }, []);
+  const [pieceFont, setPieceFont] = useState(() =>
+    resolvePieceFont(safeGetStorage("pieceFont"))
+  );
+  const [colorScheme, setColorScheme] = useState(() =>
+    resolveColorScheme(safeGetStorage("colorScheme"))
+  );
 
   useEffect(() => {
     localStorage.setItem("pieceFont", pieceFont);
