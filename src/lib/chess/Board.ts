@@ -12,7 +12,7 @@ import {
 import { parseFEN } from "../fen";
 import { parsePGN } from "../pgn";
 import { parseMove } from "../san";
-import type { MoveCoord, MoveHint, ParsedMove, PieceInfo } from "../types";
+import type { Coord, MoveHint, ParsedMove, PieceInfo } from "../types";
 import { Piece } from "./Piece";
 
 type MoveEntry = {
@@ -641,7 +641,7 @@ export class Board {
     return positions;
   }
 
-  piecePosition(piece: number, isBlack: boolean, options: MoveHint, moveTo: MoveCoord) {
+  piecePosition(piece: number, isBlack: boolean, options: MoveHint, moveTo: Coord) {
     const positions = this.piecePositions(isBlack)[piece];
     if (positions.length === 1) {
       return positions[0];
@@ -674,19 +674,19 @@ export class Board {
       if (this.isBlack) {
         rank = "8";
       }
-      const king = parseMove("e" + rank) as MoveCoord;
+      const king = parseMove("e" + rank) as Coord;
       if (Piece.fromCode(this.get(king.x, king.y)).piece !== KING) {
         console.error("can't castle: king is not in correct place", king);
       }
       if (san.castle === "king") {
-        const kingTo = parseMove("g" + rank) as MoveCoord;
+        const kingTo = parseMove("g" + rank) as Coord;
         this.move(king.x, king.y, kingTo.x, kingTo.y, "O-O");
       } else if (san.castle === "queen") {
-        const kingTo = parseMove("c" + rank) as MoveCoord;
+        const kingTo = parseMove("c" + rank) as Coord;
         this.move(king.x, king.y, kingTo.x, kingTo.y, "O-O-O");
       }
     } else if (san.piece === PAWN) {
-      const moveTo = san.moveTo as MoveCoord;
+      const moveTo = san.moveTo as Coord;
       const column = san.isCapture ? san.moveFrom?.y : moveTo.y;
       const pos = this.pawnPosition(column as number, moveTo.x, this.isBlack);
       if (!pos) {
@@ -696,7 +696,7 @@ export class Board {
       }
     } else {
       const moveFrom = san.moveFrom as MoveHint;
-      const moveTo = san.moveTo as MoveCoord;
+      const moveTo = san.moveTo as Coord;
       const pos = this.piecePosition(san.piece as number, this.isBlack, moveFrom, moveTo);
       if (pos) {
         this.move(pos[0], pos[1], moveTo.x, moveTo.y);
@@ -712,18 +712,18 @@ export class Board {
 
     if (san.castle) {
       let rank = this.isBlack ? "8" : "1";
-      const king = parseMove("e" + rank) as MoveCoord;
+      const king = parseMove("e" + rank) as Coord;
       if (san.castle === "king") {
-        const kingTo = parseMove("g" + rank) as MoveCoord;
+        const kingTo = parseMove("g" + rank) as Coord;
         return { from: [king.x, king.y], to: [kingTo.x, kingTo.y] };
       } else {
-        const kingTo = parseMove("c" + rank) as MoveCoord;
+        const kingTo = parseMove("c" + rank) as Coord;
         return { from: [king.x, king.y], to: [kingTo.x, kingTo.y] };
       }
     }
 
     if (san.piece === PAWN) {
-      const moveTo = san.moveTo as MoveCoord;
+      const moveTo = san.moveTo as Coord;
       const column = san.isCapture ? san.moveFrom?.y : moveTo.y;
       const pos = this.pawnPosition(column as number, moveTo.x, this.isBlack);
       if (!pos) return null;
@@ -731,7 +731,7 @@ export class Board {
     }
 
     const moveFrom = san.moveFrom as MoveHint;
-    const moveTo = san.moveTo as MoveCoord;
+    const moveTo = san.moveTo as Coord;
     const pos = this.piecePosition(san.piece as number, this.isBlack, moveFrom, moveTo);
     if (!pos) return null;
     return { from: [pos[0], pos[1]], to: [moveTo.x, moveTo.y] };

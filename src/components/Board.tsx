@@ -147,6 +147,12 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont }: 
                   isMoveTo={isPreviewTo}
                   isSelected={isSelected}
                   isPossibleMoveTo={isPossibleMoveTo}
+                  isCheck={false}
+                  isCheckmate={false}
+                  isAttacked={false}
+                  isUndefended={false}
+                  isPinned={false}
+                  isCheckable={false}
                   piece={piece.isEmpty ? undefined : piece}
                   pieceFont={pieceFont}
                   onClick={() => handleSquareClick(boardRowIndex, boardColIndex)}

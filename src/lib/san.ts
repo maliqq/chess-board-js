@@ -1,5 +1,5 @@
 import { FILES, PAWN, RANKS, parsePiece } from "./constants";
-import type { MoveCoord, MoveHint, ParsedMove } from "./types";
+import type { Coord, MoveHint, ParsedMove } from "./types";
 
 export function Move(x: number, y: number): string {
   return FILES.charAt(y) + RANKS.charAt(x);
@@ -79,7 +79,7 @@ export function parseSAN(data: string): ParsedMove {
   }
 
   let moveFrom: MoveHint = {};
-  let moveTo: MoveCoord | undefined;
+  let moveTo: Coord | undefined;
 
   let piece: number | undefined;
   let promotedTo: string | undefined;
@@ -93,9 +93,9 @@ export function parseSAN(data: string): ParsedMove {
     if (m) {
       if (typeof m[1] !== "undefined") {
         moveFrom = parseMove(m[1]);
-        moveTo = parseMove(m[2]) as MoveCoord;
+        moveTo = parseMove(m[2]) as Coord;
       } else {
-        moveTo = parseMove(m[2]) as MoveCoord;
+        moveTo = parseMove(m[2]) as Coord;
       }
     }
   } else {
@@ -107,7 +107,7 @@ export function parseSAN(data: string): ParsedMove {
     }
     const m = data.match(/([a-h][1-8]?)?x?([a-h][1-8])/);
     if (m) {
-      moveTo = parseMove(m[2]) as MoveCoord;
+      moveTo = parseMove(m[2]) as Coord;
       if (typeof m[1] !== "undefined") {
         moveFrom = parseMove(m[1]);
       }

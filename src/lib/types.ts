@@ -10,14 +10,14 @@ export type PieceInfo = {
   name: string;
 };
 
-export type MoveCoord = { x: number; y: number };
+export type Coord = import("./chess/Coord").Coord;
 
 export type MoveHint = { x?: number; y?: number };
 
 export type SanMove = {
   piece?: number;
   moveFrom?: MoveHint;
-  moveTo?: MoveCoord;
+  moveTo?: Coord;
   isCheck?: boolean;
   isMate?: boolean;
   isCapture?: boolean;
@@ -33,7 +33,7 @@ export type SanMove = {
 export type ParsedMove = {
   piece: number;
   moveFrom?: MoveHint;
-  moveTo?: MoveCoord;
+  moveTo?: Coord;
   isCapture: boolean;
   isCheck: boolean;
   isMate: boolean;

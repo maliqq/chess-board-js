@@ -333,7 +333,7 @@
 .file > span {
   margin: 0px auto;
 }
-.cell {
+.square {
   display: table-cell;
   position: relative;
   width: 50px;
@@ -341,27 +341,47 @@
   border: 1px solid black;
   cursor: pointer;
 }
-.cell.odd {
+.square.odd {
   background-color: var(--square-light, #f0d9b5);
 }
-.cell.even {
+.square.even {
   background-color: var(--square-dark, #b58863);
 }
-.cell.selected {
+.square.selected {
   background-color: #829769;
   opacity: 0.9;
 }
-.cell.suggested {
+.square.suggested {
   background-color: #cdd26a;
 }
-.cell.suggested.capture {
+.square.suggested.capture {
   background-color: #e8a838;
 }
-.cell.move-from {
+.square.move-from {
   background-color: #829769;
 }
-.cell.move-to {
+.square.move-to {
   background-color: #cdd26a;
+}
+.square.check {
+  box-shadow: inset 0 0 0 3px #e53935;
+}
+.square.checkmate {
+  box-shadow: inset 0 0 0 3px #8e24aa;
+}
+.square.attacked {
+  outline: 2px dashed #ff7043;
+  outline-offset: -3px;
+}
+.square.undefended {
+  outline: 2px dashed #ef6c00;
+  outline-offset: -3px;
+}
+.square.pinned {
+  box-shadow: inset 0 0 0 3px #3949ab;
+}
+.square.checkable {
+  box-shadow: inset 0 0 0 3px #26a69a;
 }
 
 @font-face {

@@ -9,6 +9,12 @@ type SquareProps = {
   isMoveTo: boolean;
   isSelected: boolean;
   isPossibleMoveTo: boolean;
+  isCheck?: boolean;
+  isCheckmate?: boolean;
+  isAttacked?: boolean;
+  isUndefended?: boolean;
+  isPinned?: boolean;
+  isCheckable?: boolean;
   piece?: PieceInfo;
   file: string;
   rank: number;
@@ -21,6 +27,12 @@ export function Square({
   isMoveTo,
   isSelected,
   isPossibleMoveTo,
+  isCheck,
+  isCheckmate,
+  isAttacked,
+  isUndefended,
+  isPinned,
+  isCheckable,
   piece,
   file,
   rank,
@@ -31,11 +43,17 @@ export function Square({
   const rankIndex = RANKS.indexOf(String(rank));
   const isLightSquare = fileIndex !== -1 && rankIndex !== -1 ? (fileIndex + rankIndex) % 2 === 0 : true;
 
-  const classes = ["cell", isLightSquare ? "odd" : "even"];
+  const classes = ["square", isLightSquare ? "odd" : "even"];
   if (isSelected) classes.push("selected");
   if (isPossibleMoveTo) classes.push("suggested");
   if (isMoveFrom) classes.push("move-from");
   if (isMoveTo) classes.push("move-to");
+  if (isCheck) classes.push("check");
+  if (isCheckmate) classes.push("checkmate");
+  if (isAttacked) classes.push("attacked");
+  if (isUndefended) classes.push("undefended");
+  if (isPinned) classes.push("pinned");
+  if (isCheckable) classes.push("checkable");
 
   return (
     <div className={cn(classes)} data-file={file} data-rank={rank} onClick={onClick}>
