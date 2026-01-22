@@ -15,6 +15,7 @@ type OpeningRowProps = OpeningWithContinuation & {
 type OpeningsBarProps = {
   completed: OpeningWithContinuation[];
   continuations: OpeningWithContinuation[];
+  moreCount?: number;
   onMoveClick?: (san: string) => void;
   onMoveHover?: (san: string | null) => void;
 };
@@ -55,7 +56,7 @@ function OpeningRow({ opening, nextSan, onMoveClick, onMoveHover }: OpeningRowPr
   );
 }
 
-export function OpeningsBar({ completed, continuations, onMoveClick, onMoveHover }: OpeningsBarProps) {
+export function OpeningsBar({ completed, continuations, moreCount = 0, onMoveClick, onMoveHover }: OpeningsBarProps) {
   const hasCompleted = completed.length > 0;
   const hasContinuations = continuations.length > 0;
   const isEmpty = !hasCompleted && !hasContinuations;
@@ -90,6 +91,9 @@ export function OpeningsBar({ completed, continuations, onMoveClick, onMoveHover
                   />
                 ))}
               </div>
+            )}
+            {moreCount > 0 && (
+              <div className="more-count">...and {moreCount} more</div>
             )}
           </>
         )}

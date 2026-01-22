@@ -32,6 +32,15 @@ function isValidFen(fen: string): boolean {
   }
 }
 
+const moveSound = new Audio("/sounds/Move.ogg");
+
+const PIECE_FONTS = [
+  { value: "Chess-Master", label: "Chess Master" },
+  { value: "Open-Chess-Font", label: "Open Chess Font" },
+  { value: "Chessvetica-Outlined", label: "Chessvetica (Outlined)" },
+  { value: "Chessvetica-Regular", label: "Chessvetica (Regular)" },
+];
+
 export function App() {
   const [baseFen, setBaseFen] = useState(DEFAULT_FEN);
   const [moves, setMoves] = useState<string[]>([]);
@@ -39,6 +48,7 @@ export function App() {
   const [flipped, setFlipped] = useState(false);
   const [copiedField, setCopiedField] = useState<"fen" | "pgn" | null>(null);
   const [previewSan, setPreviewSan] = useState<string | null>(null);
+  const [pieceFont, setPieceFont] = useState("Chess-Master");
 
   const fen = useMemo(() => computeFen(baseFen, moves, viewIndex), [baseFen, moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
@@ -58,7 +68,7 @@ export function App() {
 
   //console.log('visibleMoves=', visibleMoves, 'activeColor=', activeColor);
 
-  const { completedOpenings, continuationOpenings } = useMemo(() => {
+  const { completedOpenings, continuationOpenings, moreCount } = useMemo(() => {
     const matches = searchOpenings(visibleMoves, activeColor);
     const completed: Array<{ opening: typeof matches[0]; nextSan?: string }> = [];
     const continuations: Array<{ opening: typeof matches[0]; nextSan?: string }> = [];
@@ -76,7 +86,8 @@ export function App() {
       if (completed.length + continuations.length >= TOP_OPENINGS) break;
     }
 
-    return { completedOpenings: completed, continuationOpenings: continuations };
+    const shown = completed.length + continuations.length;
+    return { completedOpenings: completed, continuationOpenings: continuations, moreCount: matches.length - shown };
   }, [visibleMoves, activeColor]);
 
   const isAtEnd = viewIndex === moves.length;
@@ -85,6 +96,8 @@ export function App() {
     if (!isAtEnd) return;
     setMoves((prev) => [...prev, san]);
     setViewIndex((prev) => prev + 1);
+    moveSound.currentTime = 0;
+    moveSound.play();
   };
 
   const handleNavigate = (index: number) => {
@@ -117,6 +130,8 @@ export function App() {
     setMoves((prev) => [...prev, san]);
     setViewIndex((prev) => prev + 1);
     setPreviewSan(null);
+    moveSound.currentTime = 0;
+    moveSound.play();
   };
 
   const handleOpeningHover = (san: string | null) => {
@@ -124,7 +139,7 @@ export function App() {
   };
 
   return (
-    <div className="app">
+    <div className="app" style={{ "--piece-font": `'${pieceFont}'` } as React.CSSProperties}>
       <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
       <div className="center-panel">
@@ -139,6 +154,17 @@ export function App() {
             <FlipVertical2 size={14} />
             Flip
           </button>
+          <select
+            value={pieceFont}
+            onChange={(e) => setPieceFont(e.target.value)}
+            className="font-select"
+          >
+            {PIECE_FONTS.map((font) => (
+              <option key={font.value} value={font.value}>
+                {font.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="field">
@@ -174,6 +200,7 @@ export function App() {
       <OpeningsBar
         completed={completedOpenings}
         continuations={continuationOpenings}
+        moreCount={moreCount}
         onMoveClick={handleOpeningClick}
         onMoveHover={handleOpeningHover}
       />

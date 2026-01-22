@@ -39,6 +39,15 @@
   background: #f9fafb;
 }
 
+.font-select {
+  padding: 6px 8px;
+  font-size: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -261,4 +270,111 @@
 }
 .openings-bar .completed-section .opening-row:hover {
   background: #dcfce7;
+}
+.openings-bar .more-count {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #6b7280;
+  font-style: italic;
+  text-align: center;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Chess board specific styles */
+.board {
+  display: table;
+  border-collapse: collapse;
+  -webkit-user-select: none;
+}
+.row {
+  display: table-row;
+  clear: both;
+}
+.row > .rank {
+  font-size: 12px;
+  font-family: sans-serif;
+  text-align: center;
+  display: table-cell;
+  vertical-align: middle;
+  width: 12px;
+}
+.files {
+  display: table-row;
+  text-align: center;
+}
+.files > .corner {
+  display: table-cell;
+  width: 12px;
+}
+.files > .file {
+  font-size: 12px;
+  font-family: sans-serif;
+  display: table-cell;
+  width: 50px;
+  height: 1em;
+}
+.file > span {
+  margin: 0px auto;
+}
+.cell {
+  display: table-cell;
+  width: 50px;
+  height: 50px;
+  border: 1px solid black;
+  cursor: pointer;
+}
+.cell.odd {
+  background-color: #f0d9b5;
+}
+.cell.even {
+  background-color: #b58863;
+}
+.cell.selected {
+  background-color: #829769;
+  opacity: 0.9;
+}
+.cell.suggested {
+  background-color: #cdd26a;
+}
+.cell.suggested.capture {
+  background-color: #e8a838;
+}
+.cell.move-from {
+  background-color: #829769;
+}
+.cell.move-to {
+  background-color: #cdd26a;
+}
+
+@font-face {
+  font-family: 'Chess-Master';
+  src: url(/fonts/chessmaster.ttf);
+}
+@font-face {
+  font-family: 'Chessvetica-Outlined';
+  src: url(/fonts/Chessvetica-Outlined.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Chessvetica-Regular';
+  src: url(/fonts/Chessvetica-Regular.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'Open-Chess-Font';
+  src: url(/fonts/OpenChessFont.ttf);
+}
+.piece {
+  padding-left: 7px;
+  width: 100%;
+  height: 100%;
+  font-size: 37px;
+  vertical-align: middle;
+  line-height: 50px;
+  font-family: var(--piece-font, 'Chess-Master');
+  cursor: pointer;
+}
+.piece.black {
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+.piece.white {
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
 }
