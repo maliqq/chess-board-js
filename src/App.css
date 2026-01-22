@@ -1,3 +1,7 @@
+* {
+  font-family: sans-serif;
+}
+
 /* App Layout */
 .app {
   display: flex;
@@ -248,13 +252,12 @@
 .openings-bar .stats-bar .black {
   background: #1f2937;
 }
-.openings-bar .section-separator {
-  height: 1px;
-  background: #9ca3af;
-  margin: 8px 12px;
-}
 .openings-bar .completed-section .opening-row {
-  background: #f0fdf4;
+  border-bottom: 1px solid #e5e7eb;
+  background: #CEFFCEEF;
+}
+.openings-bar .completed-section .opening-main {
+  font-weight: bold;
 }
 .openings-bar .completed-section .opening-row:hover {
   background: #dcfce7;
