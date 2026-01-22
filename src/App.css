@@ -351,14 +351,6 @@
   src: url(/fonts/chessmaster.ttf);
 }
 @font-face {
-  font-family: 'Chessvetica-Outlined';
-  src: url(/fonts/Chessvetica-Outlined.woff2) format('woff2');
-}
-@font-face {
-  font-family: 'Chessvetica-Regular';
-  src: url(/fonts/Chessvetica-Regular.woff2) format('woff2');
-}
-@font-face {
   font-family: 'Open-Chess-Font';
   src: url(/fonts/OpenChessFont.ttf);
 }

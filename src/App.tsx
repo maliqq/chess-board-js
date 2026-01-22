@@ -37,8 +37,6 @@ const moveSound = new Audio("/sounds/Move.ogg");
 const PIECE_FONTS = [
   { value: "Chess-Master", label: "Chess Master" },
   { value: "Open-Chess-Font", label: "Open Chess Font" },
-  { value: "Chessvetica-Outlined", label: "Chessvetica (Outlined)" },
-  { value: "Chessvetica-Regular", label: "Chessvetica (Regular)" },
 ];
 
 export function App() {
@@ -143,7 +141,7 @@ export function App() {
       <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
       <div className="center-panel">
-        <Board fen={fen} swapped={flipped} onMove={handleMove} previewMove={previewMove} />
+        <Board fen={fen} swapped={flipped} onMove={handleMove} previewMove={previewMove} pieceFont={pieceFont} />
 
         <div className="controls">
           <button type="button" onClick={handleReset} className="btn">

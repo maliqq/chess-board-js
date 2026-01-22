@@ -11,6 +11,7 @@ type BoardProps = {
   swapped?: boolean;
   onMove?: (san: string, newFen: string) => void;
   previewMove?: { from: [number, number]; to: [number, number] } | null;
+  pieceFont?: string;
 };
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -19,7 +20,7 @@ function moveKey(x: number, y: number) {
   return `${x}:${y}`;
 }
 
-export function Board({ fen, swapped = false, onMove, previewMove }: BoardProps) {
+export function Board({ fen, swapped = false, onMove, previewMove, pieceFont }: BoardProps) {
   const [boardModel, setBoardModel] = useState(() => {
     try {
       return new ChessBoard(fen || DEFAULT_FEN);
@@ -147,6 +148,7 @@ export function Board({ fen, swapped = false, onMove, previewMove }: BoardProps)
                   isSelected={isSelected}
                   isPossibleMoveTo={isPossibleMoveTo}
                   piece={piece.isEmpty ? undefined : piece}
+                  pieceFont={pieceFont}
                   onClick={() => handleSquareClick(boardRowIndex, boardColIndex)}
                 />
               );
