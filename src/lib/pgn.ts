@@ -4,13 +4,22 @@ import { parseSAN } from "./san";
 export type ParsedPGN = {
   parsed: ParsedMove[];
   sans: string[];
+  tags: Record<string, string>;
 };
 
 export function parsePGN(data: string): ParsedPGN {
   const parsed: ParsedMove[] = [];
   const sans: string[] = [];
+  const tags: Record<string, string> = {};
+  const tagLines = data.split(/\r?\n/).filter((line) => line.trim().startsWith("["));
+  for (const line of tagLines) {
+    const match = line.match(/^\s*\[(\w+)\s+"(.*)"\]\s*$/);
+    if (match) {
+      tags[match[1]] = match[2];
+    }
+  }
   const start = data.indexOf("1.");
-  if (start === -1) return { parsed, sans };
+  if (start === -1) return { parsed, sans, tags };
 
   data = data.slice(start);
   const movePairs = data.split(/\s?\d+\./);
@@ -27,5 +36,5 @@ export function parsePGN(data: string): ParsedPGN {
       parsed.push(parseSAN(mm[1]));
     }
   }
-  return { parsed, sans };
+  return { parsed, sans, tags };
 }
