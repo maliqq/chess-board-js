@@ -346,10 +346,28 @@ footer {
 }
 
 /* Chess board specific styles */
+.board-wrap {
+  position: relative;
+  display: inline-block;
+}
+.arrow-overlay {
+  position: absolute;
+  top: 0;
+  left: 12px;
+  width: 400px;
+  height: 400px;
+  pointer-events: none;
+  z-index: 2;
+}
+.arrow-overlay canvas {
+  display: block;
+}
 .board {
   display: table;
   border-collapse: collapse;
   -webkit-user-select: none;
+  position: relative;
+  z-index: 1;
 }
 .row {
   display: table-row;

@@ -4,7 +4,9 @@ import { Board as ChessBoard, Piece } from "../lib/chess";
 import { FileLetter } from "./FileLetter";
 import { RankNumber } from "./RankNumber";
 import { Square } from "./Square";
+import { ArrowOverlay } from "./ArrowOverlay";
 import type { PieceInfo } from "../lib/types";
+import type { Coord } from "../lib/types";
 
 type BoardProps = {
   fen: string;
@@ -15,6 +17,7 @@ type BoardProps = {
   pieceTheme?: string;
   showPinned?: boolean;
   showUndefended?: boolean;
+  arrows?: Array<{ from: Coord; to: Coord; nth: number }>;
 };
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -32,7 +35,16 @@ export function Board({
   pieceTheme,
   showPinned = true,
   showUndefended = true,
+  arrows = [],
 }: BoardProps) {
+  const displayArrows = useMemo(() => {
+    if (!swapped) return arrows;
+    return arrows.map((arrow) => ({
+      ...arrow,
+      from: [7 - arrow.from[0], 7 - arrow.from[1]] as Coord,
+      to: [7 - arrow.to[0], 7 - arrow.to[1]] as Coord,
+    }));
+  }, [arrows, swapped]);
   const [boardModel, setBoardModel] = useState(() => {
     try {
       return new ChessBoard(fen || DEFAULT_FEN);
@@ -143,7 +155,9 @@ export function Board({
   }, [fen]);
 
   return (
-    <div className="board">
+    <div className="board-wrap">
+      <ArrowOverlay arrows={displayArrows} />
+      <div className="board">
       {ranks.map((rankChar, rowIndex) => {
         const rank = parseInt(rankChar, 10);
         return (
@@ -200,6 +214,7 @@ export function Board({
         {files.map((file, index) => (
           <FileLetter key={`${file}-${index}`} value={file} />
         ))}
+      </div>
       </div>
     </div>
   );
