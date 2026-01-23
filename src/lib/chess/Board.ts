@@ -760,6 +760,67 @@ export class Board {
     return { isCheck, isCheckmate, kingPos };
   }
 
+  isSquareAttackedBy(x: number, y: number, byBlack: boolean): boolean {
+    return this.getAttackers(x, y, byBlack).length > 0;
+  }
+
+  isPinnedPiece(x: number, y: number): boolean {
+    const piece = this.getPiece(x, y);
+    if (!piece || piece.piece === KING) return false;
+
+    const kingPos = this.findKing(piece.isBlack);
+    if (!kingPos) return false;
+
+    const dx = x - kingPos[0];
+    const dy = y - kingPos[1];
+    const stepX = dx === 0 ? 0 : dx > 0 ? 1 : -1;
+    const stepY = dy === 0 ? 0 : dy > 0 ? 1 : -1;
+
+    const isAligned =
+      (dx === 0 && dy !== 0) ||
+      (dy === 0 && dx !== 0) ||
+      (Math.abs(dx) === Math.abs(dy));
+    if (!isAligned) return false;
+
+    // The piece must be the first blocker between the king and the attacker.
+    let cx = kingPos[0] + stepX;
+    let cy = kingPos[1] + stepY;
+    while (!this.outOfBoard(cx, cy)) {
+      if (cx === x && cy === y) break;
+      if (!this.isEmpty(cx, cy)) return false;
+      cx += stepX;
+      cy += stepY;
+    }
+
+    if (cx !== x || cy !== y) return false;
+
+    // Look past the piece to find a sliding attacker.
+    cx += stepX;
+    cy += stepY;
+    while (!this.outOfBoard(cx, cy)) {
+      if (this.isEmpty(cx, cy)) {
+        cx += stepX;
+        cy += stepY;
+        continue;
+      }
+
+      const attacker = this.getPiece(cx, cy);
+      if (!attacker || attacker.isBlack === piece.isBlack) return false;
+
+      const isStraight = dx === 0 || dy === 0;
+      const isDiagonal = Math.abs(dx) === Math.abs(dy);
+      const isRookLike = attacker.piece === ROOK || attacker.piece === QUEEN;
+      const isBishopLike = attacker.piece === BISHOP || attacker.piece === QUEEN;
+
+      if ((isStraight && isRookLike) || (isDiagonal && isBishopLike)) {
+        return true;
+      }
+      return false;
+    }
+
+    return false;
+  }
+
   eachPiece(block: (piece: PieceInfo, x: number, y: number) => void) {
     for (let i = 0; i < BOARD_SIZE; i++) {
       for (let j = 0; j < BOARD_SIZE; j++) {
