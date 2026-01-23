@@ -34,10 +34,11 @@ function isValidFen(fen: string): boolean {
 
 const moveSound = new Audio("/sounds/Move.ogg");
 
-const PIECE_FONTS = [
-  { value: "Open-Chess-Font", label: "Open Chess Font", offsetX: "7px", offsetY: "0px", fontSize: "37px" },
-  { value: "Chess-Master", label: "Chess Master", offsetX: "10px", offsetY: "3px" },
-  { value: "Chessvetica", label: "Chessvetica", offsetX: "16px", offsetY: "5px", fontSize: "37px" },
+const PIECE_THEME = [
+  { value: "open-chess", label: "Open Chess Font", font: "open-chess", offsetX: "7px", offsetY: "0px", fontSize: "37px" },
+  { value: "chess-master", label: "Chess Master", font: "chess-master", offsetX: "10px", offsetY: "3px" },
+  { value: "chessvetica", label: "Chessvetica", font: "chessvetica", offsetX: "16px", offsetY: "5px", fontSize: "37px" },
+  { value: "lucide", label: "Lucide", offsetX: "5px", offsetY: "5px" },
 ];
 
 const COLOR_SCHEMES = [
@@ -56,9 +57,9 @@ function safeGetStorage(key: string): string | null {
 }
 
 function resolvePieceFont(value: string | null): string {
-  const fallback = "Open-Chess-Font";
+  const fallback = "open-chess";
   if (!value) return fallback;
-  return PIECE_FONTS.some((font) => font.value === value) ? value : fallback;
+  return PIECE_THEME.some((theme) => theme.value === value) ? value : fallback;
 }
 
 function resolveColorScheme(value: string | null): string {
@@ -177,21 +178,31 @@ export function App() {
     setPreviewSan(san);
   };
 
+  const pieceTheme = PIECE_THEME.find((theme) => theme.value === pieceFont);
+  const pieceThemeFont = pieceTheme?.font ?? "open-chess";
+
   return (
     <>
       <header></header>
       <main style={{
-        "--piece-font": `'${pieceFont}'`,
-        "--piece-offset-x": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetX,
-        "--piece-offset-y": PIECE_FONTS.find(f => f.value === pieceFont)?.offsetY,
-        "--piece-font-size": PIECE_FONTS.find(f => f.value === pieceFont)?.fontSize,
+        "--piece-font": `'${pieceThemeFont}'`,
+        "--piece-offset-x": pieceTheme?.offsetX,
+        "--piece-offset-y": pieceTheme?.offsetY,
+        "--piece-font-size": pieceTheme?.fontSize,
         "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light,
         "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark,
       } as React.CSSProperties}>
         <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
         <div className="center-panel">
-          <Board fen={fen} swapped={flipped} onMove={handleMove} previewMove={previewMove} pieceFont={pieceFont} />
+          <Board
+            fen={fen}
+            swapped={flipped}
+            onMove={handleMove}
+            previewMove={previewMove}
+            pieceFont={pieceFont}
+            pieceTheme={pieceTheme?.value}
+          />
 
           <div className="controls">
             <button type="button" onClick={handleReset} className="btn">
@@ -207,9 +218,9 @@ export function App() {
               onChange={(e) => setPieceFont(e.target.value)}
               className="font-select"
             >
-              {PIECE_FONTS.map((font) => (
-                <option key={font.value} value={font.value}>
-                  {font.label}
+              {PIECE_THEME.map((theme) => (
+                <option key={theme.value} value={theme.value}>
+                  {theme.label}
                 </option>
               ))}
             </select>

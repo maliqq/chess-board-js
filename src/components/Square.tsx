@@ -1,5 +1,5 @@
 import React from "react";
-import { PAWN, FILES, RANKS } from "../lib/constants";
+import { PAWN, FILES, RANKS, KING, QUEEN, BISHOP, KNIGHT, ROOK } from "../lib/constants";
 import type { PieceInfo } from "../lib/types";
 import cn from 'classnames';
 import { Piece } from "./Piece";
@@ -19,6 +19,7 @@ type SquareProps = {
   file: string;
   rank: number;
   pieceFont?: string;
+  pieceTheme?: string;
   onClick?: () => void;
 };
 
@@ -37,6 +38,7 @@ export function Square({
   file,
   rank,
   pieceFont,
+  pieceTheme,
   onClick,
 }: SquareProps) {
   const fileIndex = FILES.indexOf(file);
@@ -59,7 +61,7 @@ export function Square({
 
   return (
     <div className={cn(classes)} data-file={file} data-rank={rank} onClick={onClick}>
-      {piece ? <Piece piece={piece} pieceFont={pieceFont} /> : null}
+      {piece && <Piece piece={piece} pieceFont={pieceFont} pieceIcon={pieceTheme === "lucide"} />}
     </div>
   );
 }

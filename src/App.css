@@ -417,19 +417,19 @@ footer {
 }
 
 @font-face {
-  font-family: 'Chess-Master';
-  src: url(/fonts/chessmaster.ttf);
-}
-@font-face {
-  font-family: 'Open-Chess-Font';
+  font-family: 'open-chess';
   src: url(/fonts/OpenChessFont.ttf);
 }
 @font-face {
-  font-family: 'Chessvetica-White';
+  font-family: 'chess-master';
+  src: url(/fonts/chessmaster.ttf);
+}
+@font-face {
+  font-family: 'chessvetica-white';
   src: url(/fonts/Chessvetica-Outlined.woff2) format('woff2');
 }
 @font-face {
-  font-family: 'Chessvetica-Black';
+  font-family: 'chessvetica-black';
   src: url(/fonts/Chessvetica-Regular.woff2) format('woff2');
 }
 
@@ -438,7 +438,7 @@ footer {
   position: absolute;
   font-size: var(--piece-font-size, 50px);
   line-height: 50px;
-  font-family: var(--piece-font, 'Chess-Master');
+  font-family: var(--piece-font, 'chess-master');
   cursor: pointer;
   margin-left: var(--piece-offset-x, 0px);
   margin-top: var(--piece-offset-y, 0px);

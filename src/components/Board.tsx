@@ -12,6 +12,7 @@ type BoardProps = {
   onMove?: (san: string, newFen: string) => void;
   previewMove?: { from: [number, number]; to: [number, number] } | null;
   pieceFont?: string;
+  pieceTheme?: string;
 };
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -20,7 +21,7 @@ function moveKey(x: number, y: number) {
   return `${x}:${y}`;
 }
 
-export function Board({ fen, swapped = false, onMove, previewMove, pieceFont }: BoardProps) {
+export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pieceTheme }: BoardProps) {
   const [boardModel, setBoardModel] = useState(() => {
     try {
       return new ChessBoard(fen || DEFAULT_FEN);
@@ -158,6 +159,7 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont }: 
                   isCheckable={false}
                   piece={piece.isEmpty ? undefined : piece}
                   pieceFont={pieceFont}
+                  pieceTheme={pieceTheme}
                   onClick={() => handleSquareClick(boardRowIndex, boardColIndex)}
                 />
               );
