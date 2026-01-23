@@ -147,6 +147,9 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
                 : boardModel.isSquareAttackedBy(boardRowIndex, boardColIndex, !piece.isBlack) &&
                   !boardModel.isSquareAttackedBy(boardRowIndex, boardColIndex, piece.isBlack);
               const isPinned = piece.isEmpty ? false : boardModel.isPinnedPiece(boardRowIndex, boardColIndex);
+              const isCheckableKing = piece.isEmpty
+                ? false
+                : boardModel.isCheckableKing(boardRowIndex, boardColIndex);
               return (
                 <Square
                   key={`${file}${rankChar}`}
@@ -161,7 +164,7 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
                   isAttacked={false}
                   isUndefended={isUndefended}
                   isPinned={isPinned}
-                  isCheckable={false}
+                  isCheckable={isCheckableKing}
                   piece={piece.isEmpty ? undefined : piece}
                   pieceFont={pieceFont}
                   pieceTheme={pieceTheme}
