@@ -1,5 +1,6 @@
 import React from "react";
-import { PAWN, FILES, RANKS, KING, QUEEN, BISHOP, KNIGHT, ROOK } from "../lib/constants";
+import { Pin, ShieldOff, Swords } from "lucide-react";
+import { PAWN, FILES, RANKS } from "../lib/constants";
 import type { PieceInfo } from "../lib/types";
 import cn from 'classnames';
 import { Piece } from "./Piece";
@@ -59,9 +60,28 @@ export function Square({
   if (isPinned) classes.push("pinned");
   if (isCheckable) classes.push("checkable");
 
+  const pieceStatusClass = cn({
+    checkmate: isCheckmate,
+    checkable: isCheckable && !isCheckmate,
+  });
+
   return (
     <div className={cn(classes)} data-file={file} data-rank={rank} onClick={onClick}>
-      {piece && <Piece piece={piece} pieceFont={pieceFont} pieceIcon={pieceTheme === "lucide"} />}
+      {piece && (
+        <Piece
+          piece={piece}
+          pieceFont={pieceFont}
+          pieceIcon={pieceTheme === "lucide"}
+          className={pieceStatusClass}
+        />
+      )}
+      {(isPinned || isUndefended || isCheck) && (
+        <div className="status-icons">
+          {isPinned && <Pin className="status-icon status-pin" size={14} fill="#3949ab" />}
+          {isUndefended && <ShieldOff className="status-icon status-undefended" size={14} fill="#ef6c00" />}
+          {isCheck && <Swords className="status-icon status-check" size={14} fill="#e53935" />}
+        </div>
+      )}
     </div>
   );
 }

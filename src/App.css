@@ -384,10 +384,26 @@ footer {
   opacity: 0.9;
 }
 .square.suggested {
-  background-color: #cdd26a;
+  background-color: var(--square-light, #f0d9b5);
+}
+.square.suggested::after {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.22);
+  pointer-events: none;
 }
 .square.suggested.capture {
-  background-color: #e8a838;
+  background-color: var(--square-light, #f0d9b5);
+}
+.square.suggested.capture::after {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border-radius: 999px;
+  border: 3px solid rgba(232, 168, 56, 0.85);
+  pointer-events: none;
 }
 .square.move-from {
   background-color: #829769;
@@ -414,6 +430,28 @@ footer {
 }
 .square.checkable {
   box-shadow: inset 0 0 0 3px #26a69a;
+}
+.status-icons {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+}
+.status-icon {
+  width: 14px;
+  height: 14px;
+}
+.status-pin {
+  color: #3949ab;
+}
+.status-undefended {
+  color: #ef6c00;
+}
+.status-check {
+  color: #e53935;
 }
 
 @font-face {
@@ -449,6 +487,14 @@ footer {
 }
 .piece.white {
   text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+}
+.piece.checkmate {
+  text-shadow: 0 0 8px rgba(229, 57, 53, 0.9);
+  filter: drop-shadow(0 0 6px rgba(229, 57, 53, 0.9));
+}
+.piece.checkable {
+  text-shadow: 0 0 8px rgba(255, 152, 0, 0.9);
+  filter: drop-shadow(0 0 6px rgba(255, 152, 0, 0.9));
 }
 
 .piece.black.chessvetica {

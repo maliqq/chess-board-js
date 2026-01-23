@@ -8,6 +8,7 @@ type PieceProps = {
   piece: PieceInfo;
   pieceFont?: string;
   pieceIcon: boolean;
+  className?: string;
 };
 
 // Open Chess Font character mapping: [whitePiece, blackPiece]
@@ -35,12 +36,13 @@ function getOpenChessFontChar(piece: PieceInfo): string {
   return piece.isBlack ? mapping[1] : mapping[0];
 }
 
-export function Piece({ piece, pieceFont, pieceIcon }: PieceProps) {
+export function Piece({ piece, pieceFont, pieceIcon, className }: PieceProps) {
   if (piece.isEmpty) return null;
 
   let symbol = piece.symbol;
 
   let classes = ["piece", piece.name, piece.isBlack ? "black" : "white"];
+  if (className) classes.push(className);
 
   if (pieceFont == "open-chess") {
     symbol = getOpenChessFontChar(piece);
