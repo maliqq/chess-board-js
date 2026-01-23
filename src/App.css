@@ -44,6 +44,22 @@ footer {
   display: flex;
   gap: 8px;
 }
+.toggle-bar {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 13px;
+  color: #374151;
+}
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  user-select: none;
+}
+.toggle input {
+  accent-color: #111827;
+}
 
 .btn {
   display: flex;
@@ -394,15 +410,15 @@ footer {
   background: rgba(0, 0, 0, 0.22);
   pointer-events: none;
 }
-.square.suggested.capture {
+.square.suggested.attacked {
   background-color: var(--square-light, #f0d9b5);
 }
-.square.suggested.capture::after {
+.square.suggested.attacked::after {
   content: "";
   position: absolute;
-  inset: 5px;
-  border-radius: 999px;
-  border: 3px solid rgba(232, 168, 56, 0.85);
+  inset: 0;
+  border-radius: 2px;
+  background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.35) 85%);
   pointer-events: none;
 }
 .square.move-from {
@@ -417,19 +433,12 @@ footer {
 .square.checkmate {
   box-shadow: inset 0 0 0 3px #8e24aa;
 }
-.square.attacked {
-  outline: 2px dashed #ff7043;
-  outline-offset: -3px;
-}
 .square.undefended {
   outline: 2px dashed #ef6c00;
   outline-offset: -3px;
 }
 .square.pinned {
   box-shadow: inset 0 0 0 3px #3949ab;
-}
-.square.checkable {
-  box-shadow: inset 0 0 0 3px #26a69a;
 }
 .status-icons {
   position: absolute;
@@ -491,10 +500,6 @@ footer {
 .piece.checkmate {
   text-shadow: 0 0 8px rgba(229, 57, 53, 0.9);
   filter: drop-shadow(0 0 6px rgba(229, 57, 53, 0.9));
-}
-.piece.checkable {
-  text-shadow: 0 0 8px rgba(255, 152, 0, 0.9);
-  filter: drop-shadow(0 0 6px rgba(255, 152, 0, 0.9));
 }
 
 .piece.black.chessvetica {

@@ -15,7 +15,6 @@ type SquareProps = {
   isAttacked?: boolean;
   isUndefended?: boolean;
   isPinned?: boolean;
-  isCheckable?: boolean;
   piece?: PieceInfo;
   file: string;
   rank: number;
@@ -34,7 +33,6 @@ export function Square({
   isAttacked,
   isUndefended,
   isPinned,
-  isCheckable,
   piece,
   file,
   rank,
@@ -51,18 +49,16 @@ export function Square({
   if (isPawn) classes.push("pawn");
   if (isSelected) classes.push("selected");
   if (isPossibleMoveTo) classes.push("suggested");
+  if (isAttacked) classes.push("attacked");
   if (isMoveFrom) classes.push("move-from");
   if (isMoveTo) classes.push("move-to");
   if (isCheck) classes.push("check");
   if (isCheckmate) classes.push("checkmate");
-  if (isAttacked) classes.push("attacked");
   if (isUndefended) classes.push("undefended");
   if (isPinned) classes.push("pinned");
-  if (isCheckable) classes.push("checkable");
 
   const pieceStatusClass = cn({
     checkmate: isCheckmate,
-    checkable: isCheckable && !isCheckmate,
   });
 
   return (

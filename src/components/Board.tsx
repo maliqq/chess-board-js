@@ -13,6 +13,8 @@ type BoardProps = {
   previewMove?: { from: [number, number]; to: [number, number] } | null;
   pieceFont?: string;
   pieceTheme?: string;
+  showPinned?: boolean;
+  showUndefended?: boolean;
 };
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
@@ -21,7 +23,16 @@ function moveKey(x: number, y: number) {
   return `${x}:${y}`;
 }
 
-export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pieceTheme }: BoardProps) {
+export function Board({
+  fen,
+  swapped = false,
+  onMove,
+  previewMove,
+  pieceFont,
+  pieceTheme,
+  showPinned = true,
+  showUndefended = true,
+}: BoardProps) {
   const [boardModel, setBoardModel] = useState(() => {
     try {
       return new ChessBoard(fen || DEFAULT_FEN);
@@ -35,6 +46,10 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
 
   const possibleMoveSet = useMemo(
     () => new Set(possibleMoves.map((m) => moveKey(m[0], m[1]))),
+    [possibleMoves]
+  );
+  const possibleCaptureSet = useMemo(
+    () => new Set(possibleMoves.filter((m) => m[2] === "capture").map((m) => moveKey(m[0], m[1]))),
     [possibleMoves]
   );
   const checkState = useMemo(() => boardModel.getCheckState(), [boardModel]);
@@ -142,6 +157,7 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
               const isSelected =
                 selected?.[0] === boardRowIndex && selected?.[1] === boardColIndex;
               const isPossibleMoveTo = possibleMoveSet.has(moveKey(boardRowIndex, boardColIndex));
+              const isPossibleCapture = possibleCaptureSet.has(moveKey(boardRowIndex, boardColIndex));
               const isPreviewFrom =
                 previewMove?.from[0] === boardRowIndex && previewMove?.from[1] === boardColIndex;
               const isPreviewTo =
@@ -150,13 +166,11 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
                 checkState.kingPos?.[0] === boardRowIndex && checkState.kingPos?.[1] === boardColIndex;
               const isUndefended = piece.isEmpty
                 ? false
-                : piece.isBlack === boardModel.isBlack &&
+                : showUndefended &&
+                  piece.isBlack === boardModel.isBlack &&
                   boardModel.isSquareAttackedBy(boardRowIndex, boardColIndex, !piece.isBlack) &&
                   !boardModel.isSquareAttackedBy(boardRowIndex, boardColIndex, piece.isBlack);
-              const isPinned = piece.isEmpty ? false : boardModel.isPinnedPiece(boardRowIndex, boardColIndex);
-              const isCheckableKing = piece.isEmpty
-                ? false
-                : boardModel.isCheckableKing(boardRowIndex, boardColIndex);
+              const isPinned = piece.isEmpty ? false : showPinned && boardModel.isPinnedPiece(boardRowIndex, boardColIndex);
               return (
                 <Square
                   key={`${file}${rankChar}`}
@@ -168,10 +182,9 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
                   isPossibleMoveTo={isPossibleMoveTo}
                   isCheck={isKingSquare && checkState.isCheck && !checkState.isCheckmate}
                   isCheckmate={isKingSquare && checkState.isCheckmate}
-                  isAttacked={false}
+                  isAttacked={isPossibleCapture}
                   isUndefended={isUndefended}
                   isPinned={isPinned}
-                  isCheckable={isCheckableKing}
                   piece={piece.isEmpty ? undefined : piece}
                   pieceFont={pieceFont}
                   pieceTheme={pieceTheme}

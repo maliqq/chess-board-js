@@ -266,7 +266,7 @@ class Suggests {
     const checkPossibleCapture = (x: number, y: number) => {
       const moveType = this.b.canMove(x, y, isBlack);
       if (moveType === MoveType.CAPTURE) {
-        return [x, y];
+        return [x, y, "capture"];
       }
       return false;
     };
@@ -816,26 +816,6 @@ export class Board {
         return true;
       }
       return false;
-    }
-
-    return false;
-  }
-
-  isCheckableKing(x: number, y: number): boolean {
-    const piece = this.getPiece(x, y);
-    if (!piece || piece.piece !== KING) return false;
-
-    const moves = this.suggests.possibleMoves(x, y);
-    for (const move of moves) {
-      const nx = move[0];
-      const ny = move[1];
-      const clone = new Board(this.toFen());
-      clone.move(x, y, nx, ny);
-      clone.isBlack = !piece.isBlack;
-      clone.activeColor = clone.isBlack ? "b" : "w";
-      if (clone.getCheckState().isCheck) {
-        return true;
-      }
     }
 
     return false;

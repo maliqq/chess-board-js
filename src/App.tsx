@@ -62,6 +62,11 @@ function resolvePieceFont(value: string | null): string {
   return PIECE_THEME.some((theme) => theme.value === value) ? value : fallback;
 }
 
+function resolveBooleanSetting(value: string | null, fallback: boolean): boolean {
+  if (value === null) return fallback;
+  return value === "true";
+}
+
 function resolveColorScheme(value: string | null): string {
   const fallback = "standard";
   if (!value) return fallback;
@@ -78,6 +83,12 @@ export function App() {
   const [pieceFont, setPieceFont] = useState(() =>
     resolvePieceFont(safeGetStorage("pieceFont"))
   );
+  const [showPinned, setShowPinned] = useState(() =>
+    resolveBooleanSetting(safeGetStorage("showPinned"), true)
+  );
+  const [showUndefended, setShowUndefended] = useState(() =>
+    resolveBooleanSetting(safeGetStorage("showUndefended"), true)
+  );
   const [colorScheme, setColorScheme] = useState(() =>
     resolveColorScheme(safeGetStorage("colorScheme"))
   );
@@ -85,6 +96,14 @@ export function App() {
   useEffect(() => {
     localStorage.setItem("pieceFont", pieceFont);
   }, [pieceFont]);
+
+  useEffect(() => {
+    localStorage.setItem("showPinned", String(showPinned));
+  }, [showPinned]);
+
+  useEffect(() => {
+    localStorage.setItem("showUndefended", String(showUndefended));
+  }, [showUndefended]);
 
   useEffect(() => {
     localStorage.setItem("colorScheme", colorScheme);
@@ -202,6 +221,8 @@ export function App() {
             previewMove={previewMove}
             pieceFont={pieceFont}
             pieceTheme={pieceTheme?.value}
+            showPinned={showPinned}
+            showUndefended={showUndefended}
           />
 
           <div className="controls">
@@ -238,6 +259,24 @@ export function App() {
                 />
               ))}
             </div>
+          </div>
+          <div className="toggle-bar">
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={showPinned}
+                onChange={(e) => setShowPinned(e.target.checked)}
+              />
+              Show pinned
+            </label>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={showUndefended}
+                onChange={(e) => setShowUndefended(e.target.checked)}
+              />
+              Show undefended
+            </label>
           </div>
 
           <div className="field">
