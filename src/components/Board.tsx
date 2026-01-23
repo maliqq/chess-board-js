@@ -78,6 +78,12 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
         // Apply the move (pass SAN for history tracking)
         boardModel.move(fromX, fromY, x, y, san);
         boardModel.switchTurn();
+        const checkStateAfterMove = boardModel.getCheckState();
+        if (checkStateAfterMove.isCheckmate && !san.endsWith("#")) {
+          san += "#";
+        } else if (checkStateAfterMove.isCheck && !san.endsWith("+")) {
+          san += "+";
+        }
 
         // Notify parent with SAN and new FEN
         if (onMove) {
@@ -144,7 +150,8 @@ export function Board({ fen, swapped = false, onMove, previewMove, pieceFont, pi
                 checkState.kingPos?.[0] === boardRowIndex && checkState.kingPos?.[1] === boardColIndex;
               const isUndefended = piece.isEmpty
                 ? false
-                : boardModel.isSquareAttackedBy(boardRowIndex, boardColIndex, !piece.isBlack) &&
+                : piece.isBlack === boardModel.isBlack &&
+                  boardModel.isSquareAttackedBy(boardRowIndex, boardColIndex, !piece.isBlack) &&
                   !boardModel.isSquareAttackedBy(boardRowIndex, boardColIndex, piece.isBlack);
               const isPinned = piece.isEmpty ? false : boardModel.isPinnedPiece(boardRowIndex, boardColIndex);
               const isCheckableKing = piece.isEmpty
