@@ -20,6 +20,11 @@ type SquareProps = {
   rank: number;
   pieceFont?: string;
   pieceTheme?: string;
+  canDrag?: boolean;
+  onDragStart?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragEnd?: () => void;
+  onDrop?: (event: React.DragEvent<HTMLDivElement>) => void;
+  onDragOver?: (event: React.DragEvent<HTMLDivElement>) => void;
   onClick?: () => void;
 };
 
@@ -38,6 +43,11 @@ export function Square({
   rank,
   pieceFont,
   pieceTheme,
+  canDrag,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+  onDragOver,
   onClick,
 }: SquareProps) {
   const fileIndex = FILES.indexOf(file);
@@ -62,7 +72,17 @@ export function Square({
   });
 
   return (
-    <div className={cn(classes)} data-file={file} data-rank={rank} onClick={onClick}>
+    <div
+      className={cn(classes)}
+      data-file={file}
+      data-rank={rank}
+      onClick={onClick}
+      draggable={!!piece && !!canDrag}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDrop={onDrop}
+      onDragOver={onDragOver}
+    >
       {piece && (
         <Piece
           piece={piece}

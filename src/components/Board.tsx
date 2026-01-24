@@ -42,6 +42,7 @@ export function Board({
   });
 
   const [selected, setSelected] = useState<[number, number] | null>(null);
+  const [dragFrom, setDragFrom] = useState<[number, number] | null>(null);
   const [possibleMoves, setPossibleMoves] = useState<number[][]>([]);
 
   const possibleMoveSet = useMemo(
@@ -57,6 +58,47 @@ export function Board({
   const files = swapped ? FILES.split("").reverse() : FILES.split("");
   const ranks = swapped ? RANKS.split("").reverse() : RANKS.split("");
 
+  const attemptMove = (fromX: number, fromY: number, toX: number, toY: number) => {
+    const movedPiece = Piece.fromCode(boardModel.get(fromX, fromY));
+    if (movedPiece.isEmpty) return false;
+
+    const possible = boardModel.possibleMoves(fromX, fromY);
+    const matchingMove = possible.find((m) => m[0] === toX && m[1] === toY);
+    if (!matchingMove) return false;
+
+    const clickedPiece = Piece.fromCode(boardModel.get(toX, toY));
+    const isCapture = !clickedPiece.isEmpty || matchingMove[2] === "capture";
+
+    const toSquare = FILES[toY] + RANKS[toX];
+    let san = "";
+    if (movedPiece.piece === KING && Math.abs(toY - fromY) === 2) {
+      san = toY > fromY ? "O-O" : "O-O-O";
+    } else if (movedPiece.piece === PAWN) {
+      san = isCapture ? FILES[fromY] + "x" + toSquare : toSquare;
+    } else {
+      const pieceLetter = PIECE_LETTERS[movedPiece.piece] || "";
+      san = pieceLetter + (isCapture ? "x" : "") + toSquare;
+    }
+
+    boardModel.move(fromX, fromY, toX, toY, san);
+    boardModel.switchTurn();
+    const checkStateAfterMove = boardModel.getCheckState();
+    if (checkStateAfterMove.isCheckmate && !san.endsWith("#")) {
+      san += "#";
+    } else if (checkStateAfterMove.isCheck && !san.endsWith("+")) {
+      san += "+";
+    }
+
+    if (onMove) {
+      onMove(san, boardModel.toFen());
+    }
+
+    setBoardModel(boardModel);
+    setSelected(null);
+    setPossibleMoves([]);
+    return true;
+  };
+
   const handleSquareClick = (x: number, y: number) => {
     const clickedPiece = Piece.fromCode(boardModel.get(x, y));
 
@@ -69,48 +111,8 @@ export function Board({
 
     // If we have a selected piece and clicked on a valid move target
     if (selected) {
-      const matchingMove = possibleMoves.find((m) => m[0] === x && m[1] === y);
-      const isValidMove = !!matchingMove;
-
-      if (isValidMove) {
-        const [fromX, fromY] = selected;
-        const movedPiece = Piece.fromCode(boardModel.get(fromX, fromY));
-        // Check if it's a capture - either the destination has a piece, or it's marked as capture (en passant)
-        const isCapture = !clickedPiece.isEmpty || matchingMove[2] === "capture";
-
-        // Build SAN notation
-        const toSquare = FILES[y] + RANKS[x];
-        let san = "";
-        if (movedPiece.piece === KING && Math.abs(y - fromY) === 2) {
-          san = y > fromY ? "O-O" : "O-O-O";
-        } else if (movedPiece.piece === PAWN) {
-          san = isCapture ? FILES[fromY] + "x" + toSquare : toSquare;
-        } else {
-          const pieceLetter = PIECE_LETTERS[movedPiece.piece] || "";
-          san = pieceLetter + (isCapture ? "x" : "") + toSquare;
-        }
-
-        // Apply the move (pass SAN for history tracking)
-        boardModel.move(fromX, fromY, x, y, san);
-        boardModel.switchTurn();
-        const checkStateAfterMove = boardModel.getCheckState();
-        if (checkStateAfterMove.isCheckmate && !san.endsWith("#")) {
-          san += "#";
-        } else if (checkStateAfterMove.isCheck && !san.endsWith("+")) {
-          san += "+";
-        }
-
-        // Notify parent with SAN and new FEN
-        if (onMove) {
-          onMove(san, boardModel.toFen());
-        }
-
-        // Force re-render with updated board
-        setBoardModel(boardModel);
-        setSelected(null);
-        setPossibleMoves([]);
-        return;
-      }
+      const [fromX, fromY] = selected;
+      if (attemptMove(fromX, fromY, x, y)) return;
     }
 
     // If clicked on empty square without valid move, clear selection
@@ -131,6 +133,31 @@ export function Board({
     setPossibleMoves(moves);
   };
 
+  const handleDragStart = (x: number, y: number) => {
+    const piece = Piece.fromCode(boardModel.get(x, y));
+    if (piece.isEmpty || piece.isBlack !== boardModel.isBlack) return;
+    setDragFrom([x, y]);
+    setSelected([x, y]);
+    setPossibleMoves(boardModel.possibleMoves(x, y));
+  };
+
+  const handleDragEnd = () => {
+    setDragFrom(null);
+    setSelected(null);
+    setPossibleMoves([]);
+  };
+
+  const handleDrop = (x: number, y: number) => {
+    if (!dragFrom) return;
+    attemptMove(dragFrom[0], dragFrom[1], x, y);
+    setDragFrom(null);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    if (!dragFrom) return;
+    event.preventDefault();
+  };
+
   // Reset board when fen prop changes
   useEffect(() => {
     try {
@@ -139,6 +166,7 @@ export function Board({
       setBoardModel(new ChessBoard(DEFAULT_FEN));
     }
     setSelected(null);
+    setDragFrom(null);
     setPossibleMoves([]);
   }, [fen]);
 
@@ -188,6 +216,11 @@ export function Board({
                   piece={piece.isEmpty ? undefined : piece}
                   pieceFont={pieceFont}
                   pieceTheme={pieceTheme}
+                  canDrag={!piece.isEmpty && piece.isBlack === boardModel.isBlack}
+                  onDragStart={() => handleDragStart(boardRowIndex, boardColIndex)}
+                  onDragEnd={handleDragEnd}
+                  onDrop={() => handleDrop(boardRowIndex, boardColIndex)}
+                  onDragOver={handleDragOver}
                   onClick={() => handleSquareClick(boardRowIndex, boardColIndex)}
                 />
               );
