@@ -1,4 +1,5 @@
 import React from 'react';
+import { X } from "lucide-react";
 
 import type { Opening } from "../lib/chess/Opening";
 
@@ -10,17 +11,23 @@ type OpeningWithContinuation = {
 type OpeningRowProps = OpeningWithContinuation & {
   onMoveClick?: (san: string) => void;
   onMoveHover?: (san: string | null) => void;
+  onOpeningClick?: (opening: Opening) => void;
+  compact?: boolean;
 };
 
 type OpeningsBarProps = {
   completed: OpeningWithContinuation[];
   continuations: OpeningWithContinuation[];
+  searchQuery: string;
+  searchResults: Opening[];
+  onSearchChange: (value: string) => void;
+  onSearchSelect?: (opening: Opening) => void;
   moreCount?: number;
   onMoveClick?: (san: string) => void;
   onMoveHover?: (san: string | null) => void;
 };
 
-function OpeningRow({ opening, nextSan, onMoveClick, onMoveHover }: OpeningRowProps) {
+function OpeningRow({ opening, nextSan, onMoveClick, onMoveHover, onOpeningClick, compact }: OpeningRowProps) {
   const total = opening.white + opening.draws + opening.black;
   const whitePct = total ? (opening.white / total) * 100 : 0;
   const drawPct = total ? (opening.draws / total) * 100 : 0;
@@ -34,8 +41,8 @@ function OpeningRow({ opening, nextSan, onMoveClick, onMoveHover }: OpeningRowPr
 
   return (
     <div
-      className={`opening-row ${hasNextMove ? "clickable" : ""}`}
-      onClick={handleClick}
+      className={`opening-row ${hasNextMove || onOpeningClick ? "clickable" : ""} ${compact ? "compact" : ""}`}
+      onClick={onOpeningClick ? () => onOpeningClick(opening) : handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -43,28 +50,60 @@ function OpeningRow({ opening, nextSan, onMoveClick, onMoveHover }: OpeningRowPr
         <span className="eco">{opening.eco}</span>
         <span className="name">{opening.name}</span>
       </div>
-      {/*<div>
-        {opening.pgn}
-      </div>*/}
-      {nextSan && <div className="next-move">Next: {nextSan}</div>}
-      <div className="stats-bar" title={title}>
-        <span className="white" style={{ width: `${whitePct}%` }} />
-        <span className="draw" style={{ width: `${drawPct}%` }} />
-        <span className="black" style={{ width: `${blackPct}%` }} />
-      </div>
+      {!compact && nextSan && <div className="next-move">Next: {nextSan}</div>}
+      {!compact && (
+        <div className="stats-bar" title={title}>
+          <span className="white" style={{ width: `${whitePct}%` }} />
+          <span className="draw" style={{ width: `${drawPct}%` }} />
+          <span className="black" style={{ width: `${blackPct}%` }} />
+        </div>
+      )}
     </div>
   );
 }
 
-export function OpeningsBar({ completed, continuations, moreCount = 0, onMoveClick, onMoveHover }: OpeningsBarProps) {
+export function OpeningsBar({
+  completed,
+  continuations,
+  searchQuery,
+  searchResults,
+  onSearchChange,
+  onSearchSelect,
+  moreCount = 0,
+  onMoveClick,
+  onMoveHover,
+}: OpeningsBarProps) {
   const hasCompleted = completed.length > 0;
   const hasContinuations = continuations.length > 0;
   const isEmpty = !hasCompleted && !hasContinuations;
+  const isSearching = searchQuery.trim().length > 0;
 
   return (
     <div className="openings-bar">
       <div className="header">
         <h4>Openings</h4>
+        <input
+          className="openings-search"
+          type="search"
+          placeholder="by name/ECO..."
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              onSearchChange("");
+            }
+          }}
+        />
+        {isSearching && (
+          <button
+            type="button"
+            className="openings-clear"
+            onClick={() => onSearchChange("")}
+            title="Clear search"
+          >
+            <X size={14} />
+          </button>
+        )}
         <a
           className="openings-link"
           href="https://github.com/lichess-org/chess-openings"
@@ -76,7 +115,22 @@ export function OpeningsBar({ completed, continuations, moreCount = 0, onMoveCli
       </div>
 
       <div className="list">
-        {isEmpty ? (
+        {isSearching ? (
+          searchResults.length === 0 ? (
+            <div className="empty">No results</div>
+          ) : (
+            <div className="continuations-section">
+              {searchResults.map((opening, i) => (
+                <OpeningRow
+                  key={`${opening.eco}-${opening.name}-${i}`}
+                  opening={opening}
+                  onOpeningClick={onSearchSelect}
+                  compact
+                />
+              ))}
+            </div>
+          )
+        ) : isEmpty ? (
           <div className="empty">No matches</div>
         ) : (
           <>

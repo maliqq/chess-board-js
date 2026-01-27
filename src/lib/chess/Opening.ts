@@ -43,6 +43,47 @@ export function searchOpenings(sans: string[], activeColor: "w" | "b" = "w"): Op
   });
 }
 
+function normalize(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function searchOpeningsByQuery(query: string): OpeningData[] {
+  const q = normalize(query);
+  if (!q) return [];
+  const tokens = q.split(" ");
+
+  const scored = openings.map((opening) => {
+    const name = normalize(opening.name);
+    const eco = normalize(opening.eco);
+    const pgn = normalize(opening.pgn);
+    let score = 0;
+
+    if (eco === q) score += 300;
+    else if (eco.startsWith(q)) score += 220;
+    else if (eco.includes(q)) score += 120;
+
+    if (name === q) score += 260;
+    else if (name.startsWith(q)) score += 200;
+    else if (name.includes(q)) score += 140;
+
+    if (pgn.includes(q)) score += 60;
+
+    const tokenHits = tokens.filter((t) => name.includes(t)).length;
+    if (tokenHits === tokens.length) score += 120;
+    else score += tokenHits * 25;
+
+    return { opening, score };
+  });
+
+  return scored
+    .filter((entry) => entry.score > 0)
+    .sort((a, b) => {
+      if (a.score !== b.score) return b.score - a.score;
+      return a.opening.name.localeCompare(b.opening.name);
+    })
+    .map((entry) => entry.opening);
+}
+
 export function findExactOpening(sans: string[]): OpeningData | undefined {
   if (sans.length === 0) return undefined;
 

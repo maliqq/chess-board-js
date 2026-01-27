@@ -1,14 +1,14 @@
 import "./App.css";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { Copy, RotateCcw, FlipVertical2 } from "lucide-react";
+import { Copy, RotateCcw, FlipVertical2, Link } from "lucide-react";
 import { Board as ChessBoard } from "./lib/chess";
 import { parseSAN } from "./lib/san";
-import { parsePGN } from "./lib/pgn";
 import { Board } from "./components/Board";
 import { MoveList } from "./components/MoveList";
 import { OpeningsBar } from "./components/OpeningsBar";
-import { sansToPgn, searchOpenings } from "./lib/chess/Opening";
+import { parsePGN } from "./lib/pgn";
+import { sansToPgn, searchOpenings, searchOpeningsByQuery } from "./lib/chess/Opening";
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 const TOP_OPENINGS = 20;
@@ -83,6 +83,7 @@ export function App() {
   const [pieceFont, setPieceFont] = useState(() =>
     resolvePieceFont(safeGetStorage("pieceFont"))
   );
+  const [openingQuery, setOpeningQuery] = useState("");
   const [showPinned, setShowPinned] = useState(() =>
     resolveBooleanSetting(safeGetStorage("showPinned"), true)
   );
@@ -109,10 +110,25 @@ export function App() {
     localStorage.setItem("colorScheme", colorScheme);
   }, [colorScheme]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fenParam = params.get("fen");
+    if (!fenParam) return;
+    if (isValidFen(fenParam)) {
+      setBaseFen(fenParam);
+      setMoves([]);
+      setViewIndex(0);
+    }
+  }, []);
+
   const fen = useMemo(() => computeFen(baseFen, moves, viewIndex), [baseFen, moves, viewIndex]);
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
   const activeColor = fen.split(" ")[1] === "b" ? "b" : "w";
   const visibleMoves = useMemo(() => moves.slice(0, viewIndex), [moves, viewIndex]);
+  const openingSearchResults = useMemo(() => {
+    if (!openingQuery.trim()) return [];
+    return searchOpeningsByQuery(openingQuery).slice(0, 50);
+  }, [openingQuery]);
 
   // Compute preview move coordinates from SAN
   const previewMove = useMemo(() => {
@@ -193,9 +209,55 @@ export function App() {
     moveSound.play();
   };
 
+  const handleOpeningSearchSelect = (opening: { pgn: string }) => {
+    if (!isAtEnd) return;
+    const openingSans = parsePGN(opening.pgn).sans;
+    if (openingSans.length === 0) return;
+
+    const board = new ChessBoard(DEFAULT_FEN);
+    let matchIndex = -1;
+    if (board.toFen() === fen) {
+      matchIndex = -1;
+    }
+
+    for (let i = 0; i < openingSans.length; i++) {
+      board.applySAN(parseSAN(openingSans[i]));
+      if (board.toFen() === fen) {
+        matchIndex = i;
+        break;
+      }
+    }
+
+    if (matchIndex >= 0) {
+      const remaining = openingSans.slice(matchIndex + 1);
+      if (remaining.length === 0) return;
+      setMoves((prev) => [...prev, ...remaining]);
+      setViewIndex((prev) => prev + remaining.length);
+      return;
+    }
+
+    setBaseFen(DEFAULT_FEN);
+    setMoves(openingSans);
+    setViewIndex(openingSans.length);
+  };
+
   const handleOpeningHover = (san: string | null) => {
     setPreviewSan(san);
   };
+
+  const handleShare = async () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("fen", fen);
+    await navigator.clipboard.writeText(url.toString());
+    setCopiedField("fen");
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    url.searchParams.set("fen", fen);
+    window.history.replaceState({}, "", url.toString());
+  }, [fen]);
 
   const pieceTheme = PIECE_THEME.find((theme) => theme.value === pieceFont);
   const pieceThemeFont = pieceTheme?.font ?? "open-chess";
@@ -233,6 +295,9 @@ export function App() {
             <button type="button" onClick={() => setFlipped((f) => !f)} className="btn">
               <FlipVertical2 size={14} />
               Flip
+            </button>
+            <button type="button" onClick={handleShare} className="btn" title="Copy shareable link">
+              <Link size={14} className={copiedField === "fen" ? "copied" : ""} />
             </button>
             <select
               value={pieceFont}
@@ -315,6 +380,10 @@ export function App() {
           moreCount={moreCount}
           onMoveClick={handleOpeningClick}
           onMoveHover={handleOpeningHover}
+          searchQuery={openingQuery}
+          searchResults={openingSearchResults}
+          onSearchChange={setOpeningQuery}
+          onSearchSelect={handleOpeningSearchSelect}
         />
       </main>
 
