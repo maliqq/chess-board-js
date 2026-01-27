@@ -9,6 +9,7 @@ import { MoveList } from "./components/MoveList";
 import { OpeningsBar } from "./components/OpeningsBar";
 import { parsePGN } from "./lib/pgn";
 import { sansToPgn, searchOpenings, searchOpeningsByQuery } from "./lib/chess/Opening";
+import cn from "classnames";
 
 const DEFAULT_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR";
 const TOP_OPENINGS = 20;
@@ -213,6 +214,7 @@ export function App() {
     if (!isAtEnd) return;
     const openingSans = parsePGN(opening.pgn).sans;
     if (openingSans.length === 0) return;
+    setOpeningQuery("");
 
     const board = new ChessBoard(DEFAULT_FEN);
     let matchIndex = -1;
@@ -285,7 +287,14 @@ export function App() {
         <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
         <div className="flex flex-col gap-4">
-          <div className="flex self-center">
+          <div className="flex flex-col self-center">
+            <div className={cn(
+              "self-center rounded-full mb-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700",
+              activeColor === "b" ? "bg-black" : "bg-white",
+              activeColor === "b" ? "text-white" : "text-black"
+            )}>
+              {activeColor === "b" ? "Black to move" : "White to move"}
+            </div>
             <Board
               fen={fen}
               swapped={flipped}
