@@ -41,21 +41,21 @@ function OpeningRow({ opening, nextSan, onMoveClick, onMoveHover, onOpeningClick
 
   return (
     <div
-      className={`opening-row ${hasNextMove || onOpeningClick ? "clickable" : ""} ${compact ? "compact" : ""}`}
+      className={`border-b border-slate-200 ${compact ? "px-3 py-1.5" : "px-3 py-2"} ${hasNextMove || onOpeningClick ? "cursor-pointer hover:bg-slate-100" : ""}`}
       onClick={onOpeningClick ? () => onOpeningClick(opening) : handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      <div className="opening-main">
-        <span className="eco">{opening.eco}</span>
-        <span className="name">{opening.name}</span>
+      <div className="flex gap-2 text-sm">
+        <span className="w-9 flex-shrink-0 font-bold text-slate-600">{opening.eco}</span>
+        <span className="flex-1 text-slate-800">{opening.name}</span>
       </div>
-      {!compact && nextSan && <div className="next-move">Next: {nextSan}</div>}
+      {!compact && nextSan && <div className="mt-1 text-xs text-slate-500">Next: {nextSan}</div>}
       {!compact && (
-        <div className="stats-bar" title={title}>
-          <span className="white" style={{ width: `${whitePct}%` }} />
-          <span className="draw" style={{ width: `${drawPct}%` }} />
-          <span className="black" style={{ width: `${blackPct}%` }} />
+        <div className="mt-2 flex h-2 overflow-hidden rounded bg-slate-200" title={title}>
+          <span className="bg-white" style={{ width: `${whitePct}%` }} />
+          <span className="bg-slate-400" style={{ width: `${drawPct}%` }} />
+          <span className="bg-slate-800" style={{ width: `${blackPct}%` }} />
         </div>
       )}
     </div>
@@ -79,11 +79,11 @@ export function OpeningsBar({
   const isSearching = searchQuery.trim().length > 0;
 
   return (
-    <div className="openings-bar">
-      <div className="header">
-        <h4>Openings</h4>
+    <div className="flex w-72 flex-col overflow-hidden rounded border border-slate-300 bg-slate-50">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-100 px-3 py-2">
+        <h4 className="m-0 text-sm font-semibold text-slate-700">Openings</h4>
         <input
-          className="openings-search"
+          className="mx-2 flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 text-xs focus:border-slate-600 focus:outline-none"
           type="search"
           placeholder="by name/ECO..."
           value={searchQuery}
@@ -97,7 +97,7 @@ export function OpeningsBar({
         {isSearching && (
           <button
             type="button"
-            className="openings-clear"
+            className="mr-1 inline-flex h-7 w-7 items-center justify-center rounded border border-slate-300 bg-white text-slate-500 hover:bg-slate-100 hover:text-slate-900"
             onClick={() => onSearchChange("")}
             title="Clear search"
           >
@@ -105,7 +105,7 @@ export function OpeningsBar({
           </button>
         )}
         <a
-          className="openings-link"
+          className="text-xs text-slate-500 hover:underline"
           href="https://github.com/lichess-org/chess-openings"
           target="_blank"
           rel="noreferrer"
@@ -114,12 +114,12 @@ export function OpeningsBar({
         </a>
       </div>
 
-      <div className="list">
+      <div className="max-h-[500px] flex-1 overflow-y-auto">
         {isSearching ? (
           searchResults.length === 0 ? (
-            <div className="empty">No results</div>
+            <div className="p-4 text-center text-sm italic text-slate-400">No results</div>
           ) : (
-            <div className="continuations-section">
+            <div>
               {searchResults.map((opening, i) => (
                 <OpeningRow
                   key={`${opening.eco}-${opening.name}-${i}`}
@@ -131,18 +131,18 @@ export function OpeningsBar({
             </div>
           )
         ) : isEmpty ? (
-          <div className="empty">No matches</div>
+          <div className="p-4 text-center text-sm italic text-slate-400">No matches</div>
         ) : (
           <>
             {hasCompleted && (
-              <div className="completed-section">
+              <div className="bg-emerald-50">
                 {completed.map(({ opening, nextSan }, i) => (
                   <OpeningRow key={`${opening.eco}-${opening.name}-${i}`} opening={opening} nextSan={nextSan} />
                 ))}
               </div>
             )}
             {hasContinuations && (
-              <div className="continuations-section">
+              <div>
                 {continuations.map(({ opening, nextSan }, i) => (
                   <OpeningRow
                     key={`${opening.eco}-${opening.name}-${i}`}
@@ -155,7 +155,9 @@ export function OpeningsBar({
               </div>
             )}
             {moreCount > 0 && (
-              <div className="more-count">...and {moreCount} more</div>
+              <div className="border-t border-slate-200 px-3 py-2 text-center text-sm italic text-slate-500">
+                ...and {moreCount} more
+              </div>
             )}
           </>
         )}

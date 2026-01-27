@@ -262,47 +262,51 @@ export function App() {
   const pieceTheme = PIECE_THEME.find((theme) => theme.value === pieceFont);
   const pieceThemeFont = pieceTheme?.font ?? "open-chess";
 
+  const buttonClass =
+    "inline-flex items-center gap-1.5 rounded border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50";
+
   return (
-    <>
-      <header></header>
-      <main style={{
-        "--piece-font": `'${pieceThemeFont}'`,
-        "--piece-offset-x": pieceTheme?.offsetX,
-        "--piece-offset-y": pieceTheme?.offsetY,
-        "--piece-font-size": pieceTheme?.fontSize,
-        "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light,
-        "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark,
-      } as React.CSSProperties}>
+    <div className="flex min-h-screen flex-col bg-slate-100 font-sans text-slate-900">
+      <main
+        className="flex flex-1 items-start justify-center gap-9 p-5"
+        style={{
+          "--piece-font": `'${pieceThemeFont}'`,
+          "--piece-offset-x": pieceTheme?.offsetX,
+          "--piece-offset-y": pieceTheme?.offsetY,
+          "--piece-font-size": pieceTheme?.fontSize,
+          "--square-light": COLOR_SCHEMES.find(c => c.id === colorScheme)?.light,
+          "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark,
+        } as React.CSSProperties}
+      >
         <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
 
-        <div className="center-panel">
-          <Board
-            fen={fen}
-            swapped={flipped}
-            onMove={handleMove}
-            previewMove={previewMove}
-            pieceFont={pieceFont}
-            pieceTheme={pieceTheme?.value}
-            showPinned={showPinned}
-            showUndefended={showUndefended}
-          />
+        <div className="flex flex-col gap-4">
+          <div className="flex self-center">
+            <Board
+              fen={fen}
+              swapped={flipped}
+              onMove={handleMove}
+              previewMove={previewMove}
+              pieceFont={pieceFont}
+              pieceTheme={pieceTheme?.value}
+              showPinned={showPinned}
+              showUndefended={showUndefended}
+            />
+          </div>
 
-          <div className="controls">
-            <button type="button" onClick={handleReset} className="btn">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={handleReset} className={buttonClass}>
               <RotateCcw size={14} />
               Reset
             </button>
-            <button type="button" onClick={() => setFlipped((f) => !f)} className="btn">
+            <button type="button" onClick={() => setFlipped((f) => !f)} className={buttonClass}>
               <FlipVertical2 size={14} />
               Flip
-            </button>
-            <button type="button" onClick={handleShare} className="btn" title="Copy shareable link">
-              <Link size={14} className={copiedField === "fen" ? "copied" : ""} />
             </button>
             <select
               value={pieceFont}
               onChange={(e) => setPieceFont(e.target.value)}
-              className="font-select"
+              className="rounded border border-slate-300 bg-white px-2 py-1.5 text-sm"
             >
               {PIECE_THEME.map((theme) => (
                 <option key={theme.value} value={theme.value}>
@@ -310,12 +314,12 @@ export function App() {
                 </option>
               ))}
             </select>
-            <div className="scheme-picker">
+            <div className="flex items-center gap-1.5">
               {COLOR_SCHEMES.map((scheme) => (
                 <button
                   key={scheme.id}
                   type="button"
-                  className={`scheme-switch ${scheme.id === colorScheme ? "active" : ""}`}
+                  className={`h-6 w-6 rounded-md border border-slate-300 ${scheme.id === colorScheme ? "outline outline-2 outline-slate-900 outline-offset-2" : ""}`}
                   style={{
                     background: `linear-gradient(180deg, ${scheme.light} 50%, ${scheme.dark} 50%)`,
                   }}
@@ -324,39 +328,53 @@ export function App() {
                 />
               ))}
             </div>
+            <button type="button" onClick={handleShare} className={buttonClass} title="Copy shareable link">
+              <Link size={14} className={copiedField === "fen" ? "text-green-500" : ""} />
+            </button>
           </div>
-          <div className="toggle-bar">
-            <label className="toggle">
+          <div className="flex gap-4 text-sm text-slate-700">
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={showPinned}
                 onChange={(e) => setShowPinned(e.target.checked)}
+                className="accent-slate-900"
               />
               Show pinned
             </label>
-            <label className="toggle">
+            <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={showUndefended}
                 onChange={(e) => setShowUndefended(e.target.checked)}
+                className="accent-slate-900"
               />
               Show undefended
             </label>
           </div>
 
-          <div className="field">
-            <label>PGN</label>
-            <div className="field-row">
-              <textarea value={pgn} readOnly />
-              <button type="button" onClick={() => handleCopy(pgn, "pgn")} className="copy-btn" title="Copy PGN">
-                <Copy size={14} className={copiedField === "pgn" ? "copied" : ""} />
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-600">PGN</label>
+            <div className="flex gap-1">
+              <textarea
+                value={pgn}
+                readOnly
+                className="h-16 flex-1 resize-none rounded border border-slate-300 bg-white px-2 py-1.5 font-mono text-xs"
+              />
+              <button
+                type="button"
+                onClick={() => handleCopy(pgn, "pgn")}
+                className="inline-flex items-start rounded border border-slate-300 bg-white px-2 py-1.5 text-slate-600 hover:bg-slate-50"
+                title="Copy PGN"
+              >
+                <Copy size={14} className={copiedField === "pgn" ? "text-green-500" : ""} />
               </button>
             </div>
           </div>
 
-          <div className="field">
-            <label>FEN</label>
-            <div className="field-row">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-slate-600">FEN</label>
+            <div className="flex gap-1">
               <input
                 type="text"
                 value={fen}
@@ -366,9 +384,15 @@ export function App() {
                   const pasted = e.clipboardData.getData("text");
                   handleFenChange(pasted.trim());
                 }}
+                className="flex-1 rounded border border-slate-300 bg-white px-2 py-1.5 font-mono text-xs"
               />
-              <button type="button" onClick={() => handleCopy(fen, "fen")} className="copy-btn" title="Copy FEN">
-                <Copy size={14} className={copiedField === "fen" ? "copied" : ""} />
+              <button
+                type="button"
+                onClick={() => handleCopy(fen, "fen")}
+                className="inline-flex items-start rounded border border-slate-300 bg-white px-2 py-1.5 text-slate-600 hover:bg-slate-50"
+                title="Copy FEN"
+              >
+                <Copy size={14} className={copiedField === "fen" ? "text-green-500" : ""} />
               </button>
             </div>
           </div>
@@ -387,7 +411,9 @@ export function App() {
         />
       </main>
 
-      <footer>&copy; 2026 @maliqq</footer>
-    </>
+      <footer className="mt-auto bg-white px-5 py-2 text-right text-xs text-slate-500">
+        &copy; 2026 @maliqq
+      </footer>
+    </div>
   );
 }
