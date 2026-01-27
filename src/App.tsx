@@ -255,7 +255,11 @@ export function App() {
 
   useEffect(() => {
     const url = new URL(window.location.href);
-    url.searchParams.set("fen", fen);
+    if (fen === DEFAULT_FEN && moves.length === 0 && viewIndex === 0) {
+      url.searchParams.delete("fen");
+    } else {
+      url.searchParams.set("fen", fen);
+    }
     window.history.replaceState({}, "", url.toString());
   }, [fen]);
 
