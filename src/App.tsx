@@ -126,6 +126,14 @@ export function App() {
   const pgn = useMemo(() => sansToPgn(moves), [moves]);
   const activeColor = fen.split(" ")[1] === "b" ? "b" : "w";
   const visibleMoves = useMemo(() => moves.slice(0, viewIndex), [moves, viewIndex]);
+  const checkState = useMemo(() => {
+    try {
+      const board = new ChessBoard(fen);
+      return board.getCheckState();
+    } catch {
+      return { isCheck: false, isCheckmate: false };
+    }
+  }, [fen]);
   const openingSearchResults = useMemo(() => {
     if (!openingQuery.trim()) return [];
     return searchOpeningsByQuery(openingQuery).slice(0, 50);
@@ -284,17 +292,28 @@ export function App() {
           "--square-dark": COLOR_SCHEMES.find(c => c.id === colorScheme)?.dark,
         } as React.CSSProperties}
       >
-        <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
+        <div className="flex flex-col gap-2">
+          <div className={cn(
+            "self-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide",
+            checkState.isCheckmate
+              ? "bg-red-600 text-white"
+              : activeColor === "b"
+                ? "bg-black text-white"
+                : "bg-white text-black"
+          )}>
+            {checkState.isCheckmate
+              ? activeColor === "b"
+                ? "White won"
+                : "Black won"
+              : activeColor === "b"
+                ? "Black to move"
+                : "White to move"}
+          </div>
+          <MoveList moves={moves} currentIndex={viewIndex} onNavigate={handleNavigate} />
+        </div>
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col self-center">
-            <div className={cn(
-              "self-center rounded-full mb-2 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700",
-              activeColor === "b" ? "bg-black" : "bg-white",
-              activeColor === "b" ? "text-white" : "text-black"
-            )}>
-              {activeColor === "b" ? "Black to move" : "White to move"}
-            </div>
             <Board
               fen={fen}
               swapped={flipped}
@@ -377,7 +396,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => handleCopy(pgn, "pgn")}
-                className="inline-flex items-start rounded border border-slate-300 bg-white px-2 py-1.5 text-slate-600 hover:bg-slate-50"
+                className="inline-flex h-fit items-start rounded border border-slate-300 bg-white px-2 py-1.5 text-slate-600 hover:bg-slate-50"
                 title="Copy PGN"
               >
                 <Copy size={14} className={copiedField === "pgn" ? "text-green-500" : ""} />
